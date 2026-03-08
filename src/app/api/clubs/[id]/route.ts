@@ -19,7 +19,6 @@ export async function GET(
   return NextResponse.json(club);
 }
 
-// 동아리 수정 (어드민 전용)
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -31,22 +30,24 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { name, description, maxCapacity, isOpen } = body;
+  const { name, description, grade1Capacity, grade2Capacity, grade3Capacity, isOpen, openAt } = body;
 
   const club = await prisma.club.update({
     where: { id: Number(id) },
     data: {
       ...(name !== undefined && { name: String(name) }),
       ...(description !== undefined && { description: String(description) }),
-      ...(maxCapacity !== undefined && { maxCapacity: Number(maxCapacity) }),
+      ...(grade1Capacity !== undefined && { grade1Capacity: Number(grade1Capacity) }),
+      ...(grade2Capacity !== undefined && { grade2Capacity: Number(grade2Capacity) }),
+      ...(grade3Capacity !== undefined && { grade3Capacity: Number(grade3Capacity) }),
       ...(isOpen !== undefined && { isOpen: Boolean(isOpen) }),
+      ...(openAt !== undefined && { openAt: openAt ? new Date(openAt) : null }),
     },
   });
 
   return NextResponse.json(club);
 }
 
-// 동아리 삭제 (어드민 전용)
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

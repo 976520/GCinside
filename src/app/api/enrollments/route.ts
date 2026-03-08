@@ -34,17 +34,43 @@ export async function POST(req: NextRequest) {
     const enrollment = await prisma.$transaction(async (tx: TransactionClient) => {
       const club = await tx.club.findUnique({
         where: { id: Number(clubId) },
-        select: { id: true, maxCapacity: true, isOpen: true },
+        select: {
+          id: true,
+          grade1Capacity: true,
+          grade2Capacity: true,
+          grade3Capacity: true,
+          isOpen: true,
+          openAt: true,
+        },
       });
 
       if (!club) throw new Error("CLUB_NOT_FOUND");
       if (!club.isOpen) throw new Error("CLUB_CLOSED");
 
-      const count = await tx.enrollment.count({
-        where: { clubId: Number(clubId) },
+      const now = new Date();
+      if (club.openAt && now < club.openAt) throw new Error("NOT_OPEN_YET");
+
+      const user = await tx.user.findUnique({
+        where: { id: session.userId! },
+        select: { grade: true },
       });
 
-      if (count >= club.maxCapacity) throw new Error("CLUB_FULL");
+      const grade = user?.grade;
+      if (!grade) throw new Error("GRADE_REQUIRED");
+
+      const gradeCapacity =
+        grade === 1 ? club.grade1Capacity
+        : grade === 2 ? club.grade2Capacity
+        : grade === 3 ? club.grade3Capacity
+        : 0;
+
+      if (gradeCapacity === 0) throw new Error("GRADE_NOT_ALLOWED");
+
+      const gradeCount = await tx.enrollment.count({
+        where: { clubId: Number(clubId), user: { grade } },
+      });
+
+      if (gradeCount >= gradeCapacity) throw new Error("GRADE_FULL");
 
       return tx.enrollment.create({
         data: {
@@ -63,8 +89,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "동아리를 찾을 수 없습니다." }, { status: 404 });
     if (message === "CLUB_CLOSED")
       return NextResponse.json({ error: "신청이 마감된 동아리입니다." }, { status: 409 });
-    if (message === "CLUB_FULL")
-      return NextResponse.json({ error: "정원이 마감되었습니다." }, { status: 409 });
+    if (message === "NOT_OPEN_YET")
+      return NextResponse.json({ error: "아직 신청 시간이 아닙니다." }, { status: 409 });
+    if (message === "GRADE_REQUIRED")
+      return NextResponse.json({ error: "학년 정보가 없습니다. 프로필을 먼저 설정해주세요." }, { status: 400 });
+    if (message === "GRADE_NOT_ALLOWED")
+      return NextResponse.json({ error: "해당 학년은 신청할 수 없는 동아리입니다." }, { status: 409 });
+    if (message === "GRADE_FULL")
+      return NextResponse.json({ error: "해당 학년 정원이 마감되었습니다." }, { status: 409 });
 
     if (message.includes("Unique constraint")) {
       return NextResponse.json({ error: "이미 신청한 동아리입니다." }, { status: 409 });

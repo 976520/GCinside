@@ -31,12 +31,47 @@ interface Club {
   id: number;
   name: string;
   description: string;
-  maxCapacity: number;
+  grade1Capacity: number;
+  grade2Capacity: number;
+  grade3Capacity: number;
   isOpen: boolean;
+  openAt: string | null;
   _count: { enrollments: number };
 }
 
-const emptyForm = { name: "", description: "", maxCapacity: 0, isOpen: true };
+const emptyForm = {
+  name: "",
+  description: "",
+  grade1Capacity: 0,
+  grade2Capacity: 0,
+  grade3Capacity: 0,
+  isOpen: true,
+  openAt: "",
+};
+
+function utcToKstInput(utcStr: string | null): string {
+  if (!utcStr) return "";
+  const date = new Date(utcStr);
+  const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().slice(0, 16);
+}
+
+function kstInputToUtc(kstStr: string): string | null {
+  if (!kstStr) return null;
+  return new Date(kstStr + ":00+09:00").toISOString();
+}
+
+function formatKST(utcStr: string | null): string {
+  if (!utcStr) return "-";
+  return new Date(utcStr).toLocaleString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function AdminClubs() {
   const [clubs, setClubs] = useState<Club[]>([]);
@@ -58,16 +93,26 @@ export default function AdminClubs() {
     e.preventDefault();
     setSubmitting(true);
 
+    const payload = {
+      name: form.name,
+      description: form.description,
+      grade1Capacity: form.grade1Capacity,
+      grade2Capacity: form.grade2Capacity,
+      grade3Capacity: form.grade3Capacity,
+      isOpen: form.isOpen,
+      openAt: kstInputToUtc(form.openAt),
+    };
+
     const res = editId !== null
       ? await fetch(`/api/clubs/${editId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         })
       : await fetch("/api/clubs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         });
 
     if (res.ok) {
@@ -88,8 +133,11 @@ export default function AdminClubs() {
     setForm({
       name: club.name,
       description: club.description,
-      maxCapacity: club.maxCapacity,
+      grade1Capacity: club.grade1Capacity,
+      grade2Capacity: club.grade2Capacity,
+      grade3Capacity: club.grade3Capacity,
       isOpen: club.isOpen,
+      openAt: utcToKstInput(club.openAt),
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -132,14 +180,12 @@ export default function AdminClubs() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="maxCapacity">최대 정원</Label>
+                <Label htmlFor="openAt">신청 오픈 시간 (KST)</Label>
                 <Input
-                  id="maxCapacity"
-                  type="number"
-                  min={1}
-                  required
-                  value={form.maxCapacity || ""}
-                  onChange={(e) => setForm((f) => ({ ...f, maxCapacity: Number(e.target.value) }))}
+                  id="openAt"
+                  type="datetime-local"
+                  value={form.openAt}
+                  onChange={(e) => setForm((f) => ({ ...f, openAt: e.target.value }))}
                 />
               </div>
             </div>
@@ -153,6 +199,30 @@ export default function AdminClubs() {
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               />
+            </div>
+            <div>
+              <Label className="mb-2 block">학년별 정원</Label>
+              <div className="grid grid-cols-3 gap-3">
+                {([1, 2, 3] as const).map((g) => {
+                  const key = `grade${g}Capacity` as "grade1Capacity" | "grade2Capacity" | "grade3Capacity";
+                  return (
+                    <div key={g} className="space-y-1.5">
+                      <Label htmlFor={key} className="text-muted-foreground text-xs font-normal">
+                        {g}학년 정원
+                      </Label>
+                      <Input
+                        id={key}
+                        type="number"
+                        min={0}
+                        required
+                        value={form[key] || ""}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: Number(e.target.value) }))}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">0으로 설정하면 해당 학년은 신청 불가</p>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
@@ -189,7 +259,10 @@ export default function AdminClubs() {
               <TableHeader>
                 <TableRow>
                   <TableHead>동아리명</TableHead>
-                  <TableHead>신청 / 정원</TableHead>
+                  <TableHead>1학년</TableHead>
+                  <TableHead>2학년</TableHead>
+                  <TableHead>3학년</TableHead>
+                  <TableHead>오픈 시간</TableHead>
                   <TableHead>상태</TableHead>
                   <TableHead className="text-right">관리</TableHead>
                 </TableRow>
@@ -198,8 +271,17 @@ export default function AdminClubs() {
                 {clubs.map((club) => (
                   <TableRow key={club.id}>
                     <TableCell className="font-medium">{club.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {club._count.enrollments} / {club.maxCapacity}
+                    <TableCell className="text-muted-foreground text-sm">
+                      {club.grade1Capacity > 0 ? `- / ${club.grade1Capacity}` : "불가"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {club.grade2Capacity > 0 ? `- / ${club.grade2Capacity}` : "불가"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {club.grade3Capacity > 0 ? `- / ${club.grade3Capacity}` : "불가"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                      {formatKST(club.openAt)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={club.isOpen ? "default" : "secondary"}>
@@ -227,7 +309,7 @@ export default function AdminClubs() {
                 ))}
                 {clubs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       등록된 창체동아리가 없습니다.
                     </TableCell>
                   </TableRow>
@@ -243,7 +325,7 @@ export default function AdminClubs() {
           <DialogHeader>
             <DialogTitle>동아리 삭제</DialogTitle>
             <DialogDescription>
-              <strong>"{deleteTarget?.name}"</strong> 동아리를 삭제하면 모든 신청 내역도 함께 삭제됩니다.
+              <strong>&quot;{deleteTarget?.name}&quot;</strong> 동아리를 삭제하면 모든 신청 내역도 함께 삭제됩니다.
               계속하시겠습니까?
             </DialogDescription>
           </DialogHeader>

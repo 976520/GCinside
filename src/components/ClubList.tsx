@@ -12,16 +12,37 @@ interface Club {
   id: number;
   name: string;
   description: string;
-  maxCapacity: number;
+  grade1Capacity: number;
+  grade2Capacity: number;
+  grade3Capacity: number;
   isOpen: boolean;
+  openAt: string | null;
   _count: { enrollments: number };
+  gradeEnrollments: { grade1: number; grade2: number; grade3: number };
 }
 
-export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
+function formatKST(utcStr: string): string {
+  return new Date(utcStr).toLocaleString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export default function ClubList({
+  isLoggedIn,
+  userGrade,
+}: {
+  isLoggedIn: boolean;
+  userGrade?: number | null;
+}) {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<number | null>(null);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,6 +59,12 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
     };
     fetchData();
   }, [isLoggedIn]);
+
+  // 1분마다 현재 시간 갱신 (오픈 시간 체크용)
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleEnroll = async (clubId: number) => {
     if (!isLoggedIn) {
@@ -60,7 +87,16 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
       setClubs((prev) =>
         prev.map((c) =>
           c.id === clubId
-            ? { ...c, _count: { enrollments: c._count.enrollments + 1 } }
+            ? {
+                ...c,
+                _count: { enrollments: c._count.enrollments + 1 },
+                gradeEnrollments: {
+                  ...c.gradeEnrollments,
+                  ...(userGrade === 1 && { grade1: c.gradeEnrollments.grade1 + 1 }),
+                  ...(userGrade === 2 && { grade2: c.gradeEnrollments.grade2 + 1 }),
+                  ...(userGrade === 3 && { grade3: c.gradeEnrollments.grade3 + 1 }),
+                },
+              }
             : c
         )
       );
@@ -103,10 +139,41 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <div className="grid gap-4">
       {clubs.map((club) => {
-        const isFull = club._count.enrollments >= club.maxCapacity;
         const isEnrolled = enrolledIds.has(club.id);
         const isClosed = !club.isOpen;
-        const pct = Math.round((club._count.enrollments / club.maxCapacity) * 100);
+        const isNotOpenYet = !!club.openAt && now < new Date(club.openAt);
+
+        const gradeCount =
+          userGrade === 1 ? club.gradeEnrollments.grade1
+          : userGrade === 2 ? club.gradeEnrollments.grade2
+          : userGrade === 3 ? club.gradeEnrollments.grade3
+          : null;
+
+        const gradeCapacity =
+          userGrade === 1 ? club.grade1Capacity
+          : userGrade === 2 ? club.grade2Capacity
+          : userGrade === 3 ? club.grade3Capacity
+          : null;
+
+        const isGradeFull = gradeCapacity !== null && gradeCapacity > 0 && gradeCount !== null && gradeCount >= gradeCapacity;
+        const isGradeNotAllowed = gradeCapacity === 0;
+
+        const disabled = isClosed || isNotOpenYet || isEnrolled || isGradeFull || isGradeNotAllowed || pending === club.id;
+
+        const buttonLabel =
+          pending === club.id ? "처리중..."
+          : isEnrolled ? "신청완료"
+          : isClosed ? "비활성"
+          : isNotOpenYet ? "신청 전"
+          : isGradeNotAllowed ? "신청불가"
+          : isGradeFull ? "마감"
+          : "신청하기";
+
+        const grades = [
+          { label: "1학년", count: club.gradeEnrollments.grade1, capacity: club.grade1Capacity, isMyGrade: userGrade === 1 },
+          { label: "2학년", count: club.gradeEnrollments.grade2, capacity: club.grade2Capacity, isMyGrade: userGrade === 2 },
+          { label: "3학년", count: club.gradeEnrollments.grade3, capacity: club.grade3Capacity, isMyGrade: userGrade === 3 },
+        ];
 
         return (
           <Card key={club.id}>
@@ -115,36 +182,45 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
                 <div className="space-y-1">
                   <CardTitle className="flex items-center gap-2">
                     {club.name}
-                    {isClosed && <Badge variant="secondary">마감</Badge>}
+                    {isClosed && <Badge variant="secondary">비활성</Badge>}
+                    {isNotOpenYet && <Badge variant="outline">신청 전</Badge>}
                     {isEnrolled && <Badge>신청완료</Badge>}
                   </CardTitle>
                   <CardDescription>{club.description}</CardDescription>
                 </div>
                 <Button
                   size="sm"
-                  variant={isEnrolled ? "secondary" : isFull || isClosed ? "outline" : "default"}
-                  disabled={isFull || isEnrolled || isClosed || pending === club.id}
+                  variant={isEnrolled ? "secondary" : disabled ? "outline" : "default"}
+                  disabled={disabled}
                   onClick={() => handleEnroll(club.id)}
                   className="shrink-0"
                 >
-                  {pending === club.id
-                    ? "처리중..."
-                    : isEnrolled
-                    ? "신청완료"
-                    : isFull
-                    ? "마감"
-                    : isClosed
-                    ? "비활성"
-                    : "신청하기"}
+                  {buttonLabel}
                 </Button>
               </div>
+              {club.openAt && (
+                <p className="text-xs text-muted-foreground">
+                  {isNotOpenYet ? `신청 오픈: ${formatKST(club.openAt)}` : `오픈됨: ${formatKST(club.openAt)}`}
+                </p>
+              )}
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-3">
-                <Progress value={pct} className="flex-1 h-2" />
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {club._count.enrollments} / {club.maxCapacity}
-                </span>
+              <div className="space-y-2">
+                {grades.map(({ label, count, capacity, isMyGrade }) => {
+                  if (capacity === 0) return null;
+                  const pct = Math.round((count / capacity) * 100);
+                  return (
+                    <div key={label} className="flex items-center gap-3">
+                      <span className={`text-xs w-12 shrink-0 ${isMyGrade ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                        {label}
+                      </span>
+                      <Progress value={pct} className="flex-1 h-1.5" />
+                      <span className={`text-xs shrink-0 tabular-nums ${isMyGrade ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                        {count} / {capacity}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
