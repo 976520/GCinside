@@ -73,19 +73,19 @@ export default function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Link href="/profile" className="w-full">
-                    내 프로필
+                    My Profile
                   </Link>
                 </DropdownMenuItem>
                 {user.role === "ADMIN" && (
                   <DropdownMenuItem>
                     <Link href="/admin" className="w-full">
-                      관리 페이지
+                      Admin Page
                     </Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onClick={handleLogout}>
-                  로그아웃
+                  Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -94,7 +94,7 @@ export default function Header() {
               href="/api/auth/login"
               className={cn(buttonVariants({ size: "sm" }))}
             >
-              로그인
+              Login
             </a>
           )}
         </nav>

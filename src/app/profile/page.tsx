@@ -38,7 +38,7 @@ export default async function ProfilePage() {
       <Header />
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
         <section>
-          <h1 className="text-2xl font-bold mb-4">내 프로필</h1>
+          <h1 className="text-2xl font-bold mb-4">My Profile</h1>
           <div className="rounded-xl border bg-card p-6 space-y-4">
             <div className="flex items-center gap-4">
               <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center text-lg font-semibold text-primary">
