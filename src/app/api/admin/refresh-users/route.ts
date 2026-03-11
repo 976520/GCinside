@@ -9,10 +9,13 @@ export async function POST() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const users = await prisma.user.findMany({
-    where: { refreshToken: { not: null } },
-    select: { id: true, name: true, email: true, refreshToken: true },
-  });
+  const [users, totalUsers] = await Promise.all([
+    prisma.user.findMany({
+      where: { refreshToken: { not: null } },
+      select: { id: true, name: true, email: true, refreshToken: true },
+    }),
+    prisma.user.count({ where: { role: "STUDENT" } }),
+  ]);
 
   const results = await Promise.allSettled(
     users.map(async (user) => {
@@ -52,5 +55,7 @@ export async function POST() {
     succeeded: succeeded.length,
     failed: failed.length,
     failedUsers: failed,
+    totalStudents: totalUsers,
+    withToken: users.length,
   });
 }

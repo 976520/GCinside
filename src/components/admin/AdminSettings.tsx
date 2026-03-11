@@ -80,13 +80,19 @@ function RefreshUsersButton() {
           succeeded: number;
           failed: number;
           failedUsers: { name: string; reason: string }[];
+          totalStudents: number;
+          withToken: number;
         };
       }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["clubs"] });
       queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
 
-      if (data.failed === 0) {
+      if (data.withToken === 0) {
+        toast.warning("갱신 가능한 학생 없음", {
+          description: "토큰이 저장된 학생이 없습니다. 학생들이 재로그인한 후 다시 시도하세요.",
+        });
+      } else if (data.failed === 0) {
         toast.success(`학번/학년 갱신 완료`, {
           description: `${data.succeeded}명 갱신됨`,
         });
@@ -107,8 +113,20 @@ function RefreshUsersButton() {
         </Button>
         <span className="text-muted-foreground text-xs">
           DataGSM OAuth로 모든 학생의 학번·학년을 최신 정보로 갱신합니다
+          {mutation.isSuccess && (
+            <>
+              {" "}
+              · 토큰 보유 {mutation.data.withToken} / {mutation.data.totalStudents}명
+            </>
+          )}
         </span>
       </div>
+      {mutation.isSuccess && mutation.data.withToken === 0 && (
+        <p className="text-muted-foreground text-xs">
+          리프레시 토큰이 저장된 학생이 없습니다. 학생들이 로그아웃 후 재로그인하면 토큰이
+          저장됩니다.
+        </p>
+      )}
       {mutation.isSuccess && mutation.data.failedUsers.length > 0 && (
         <p className="text-destructive text-xs">
           실패: {mutation.data.failedUsers.map((u) => u.name).join(", ")}
