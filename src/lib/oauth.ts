@@ -1,12 +1,5 @@
-/**
- * Datagsm OAuth 2.0 + PKCE 헬퍼
- * https://oauth.data.hellogsm.kr
- */
-
 const OAUTH_BASE = "https://oauth.data.hellogsm.kr";
 const USERINFO_BASE = "https://oauth-userinfo.data.hellogsm.kr";
-
-// ─── PKCE ────────────────────────────────────────────────────────────────────
 
 export function generateCodeVerifier(): string {
   const array = new Uint8Array(32);
@@ -34,8 +27,6 @@ export function generateState(): string {
   return base64UrlEncode(array);
 }
 
-// ─── Authorization URL ───────────────────────────────────────────────────────
-
 export async function buildAuthorizationUrl(
   codeVerifier: string,
   state: string
@@ -51,8 +42,6 @@ export async function buildAuthorizationUrl(
   });
   return `${OAUTH_BASE}/v1/oauth/authorize?${params.toString()}`;
 }
-
-// ─── Token Exchange ──────────────────────────────────────────────────────────
 
 export interface TokenResponse {
   access_token: string;
@@ -78,15 +67,20 @@ export async function exchangeCodeForToken(
     }),
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Token exchange failed: ${res.status} ${err}`);
+  const json = await res.json();
+
+  const payload = json?.data ?? json;
+
+  if (payload?.error) {
+    throw new Error(`Token exchange failed: ${payload.error} - ${payload.error_description}`);
   }
 
-  return res.json();
-}
+  if (!payload?.access_token) {
+    throw new Error(`Token exchange failed: no access_token in response`);
+  }
 
-// ─── UserInfo ────────────────────────────────────────────────────────────────
+  return payload as TokenResponse;
+}
 
 export interface DatagsmUser {
   id: number;
@@ -114,14 +108,14 @@ export async function fetchUserInfo(accessToken: string): Promise<DatagsmUser> {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
+  const json = await res.json();
+
   if (!res.ok) {
-    throw new Error(`UserInfo fetch failed: ${res.status}`);
+    throw new Error(`UserInfo fetch failed: ${res.status} - ${json?.message ?? ""}`);
   }
 
-  return res.json();
+  return (json?.data ?? json) as DatagsmUser;
 }
-
-// ─── Admin Check ─────────────────────────────────────────────────────────────
 
 export function isAdminEmail(email: string): boolean {
   const adminEmails = (process.env.ADMIN_EMAILS ?? "")
