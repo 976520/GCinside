@@ -10,7 +10,7 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "lcov"],
+      reporter: ["text", "lcov", "json-summary"],
       exclude: ["node_modules/**", ".next/**", "src/test/**", "**/*.config.*", "prisma/**"],
     },
   },
