@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,54 +52,49 @@ interface Club {
 }
 
 export default function AdminEnrollments() {
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [clubs, setClubs] = useState<Club[]>([]);
+  const queryClient = useQueryClient();
   const [selectedClub, setSelectedClub] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-
   const [deleteTarget, setDeleteTarget] = useState<Enrollment | null>(null);
 
-  const fetchEnrollments = async (clubId?: string) => {
-    setLoading(true);
-    const url = clubId ? `/api/admin/enrollments?clubId=${clubId}` : "/api/admin/enrollments";
-    const res = await fetch(url);
-    setEnrollments(await res.json());
-    setLoading(false);
-  };
+  const { data: clubs = [] } = useQuery<Club[]>({
+    queryKey: ["clubs"],
+    queryFn: () => fetch("/api/clubs").then((r) => r.json()),
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    const fetchClubs = async () => {
-      const res = await fetch("/api/clubs");
-      setClubs(await res.json());
-    };
+  const { data: enrollments = [], isLoading } = useQuery<Enrollment[]>({
+    queryKey: ["admin-enrollments", selectedClub],
+    queryFn: () => {
+      const url = selectedClub
+        ? `/api/admin/enrollments?clubId=${selectedClub}`
+        : "/api/admin/enrollments";
+      return fetch(url).then((r) => r.json());
+    },
+    staleTime: 10_000,
+  });
 
-    void fetchClubs();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchEnrollments();
-  }, []);
-
-  const handleClubFilter = (value: string | null) => {
-    const clubId = !value || value === "all" ? "" : value;
-    setSelectedClub(clubId);
-    fetchEnrollments(clubId || undefined);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
-    const res = await fetch(`/api/enrollments/${deleteTarget.id}`, { method: "DELETE" });
-    if (res.ok) {
-      toast.success(`${deleteTarget.user.name}님의 신청이 취소되었습니다.`);
-      fetchEnrollments(selectedClub || undefined);
-    } else {
-      toast.error("취소에 실패했습니다.");
-    }
-    setDeleteTarget(null);
-  };
+  const deleteMutation = useMutation({
+    mutationFn: (enrollment: Enrollment) =>
+      fetch(`/api/enrollments/${enrollment.id}`, { method: "DELETE" }).then((res) => {
+        if (!res.ok) throw new Error();
+        return enrollment;
+      }),
+    onSuccess: (enrollment) => {
+      toast.success(`${enrollment.user.name}님의 신청이 취소되었습니다.`);
+      setDeleteTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["clubs"] });
+    },
+    onError: () => toast.error("취소에 실패했습니다."),
+  });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <Select value={selectedClub || "all"} onValueChange={handleClubFilter}>
+        <Select
+          value={selectedClub || "all"}
+          onValueChange={(v) => setSelectedClub(v === "all" ? "" : (v ?? ""))}
+        >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="동아리 선택" />
           </SelectTrigger>
@@ -116,7 +112,7 @@ export default function AdminEnrollments() {
 
       <Card>
         <CardContent className="p-0">
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-3 p-6">
               {[1, 2, 3, 4].map((i) => (
                 <Skeleton key={i} className="h-10 w-full" />
@@ -184,7 +180,11 @@ export default function AdminEnrollments() {
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
               아니오
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+            >
               취소하기
             </Button>
           </DialogFooter>

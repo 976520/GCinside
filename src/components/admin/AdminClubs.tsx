@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,61 +48,56 @@ const emptyForm = {
 };
 
 export default function AdminClubs() {
-  const [clubs, setClubs] = useState<Club[]>([]);
+  const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Club | null>(null);
 
-  const fetchClubs = async () => {
-    const res = await fetch("/api/clubs");
-    setClubs(await res.json());
-    setLoading(false);
-  };
+  const { data: clubs = [], isLoading } = useQuery<Club[]>({
+    queryKey: ["clubs"],
+    queryFn: () => fetch("/api/clubs").then((r) => r.json()),
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchClubs();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    const payload = {
-      name: form.name,
-      description: form.description,
-      grade1Capacity: form.grade1Capacity,
-      grade23Capacity: form.grade23Capacity,
-      isOpen: form.isOpen,
-    };
-
-    const res =
+  const saveMutation = useMutation({
+    mutationFn: (payload: typeof emptyForm) =>
       editId !== null
-        ? await fetch(`/api/clubs/${editId}`, {
+        ? fetch(`/api/clubs/${editId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
+          }).then(async (res) => {
+            if (!res.ok) throw new Error((await res.json()).error);
           })
-        : await fetch("/api/clubs", {
+        : fetch("/api/clubs", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
-          });
-
-    if (res.ok) {
+          }).then(async (res) => {
+            if (!res.ok) throw new Error((await res.json()).error);
+          }),
+    onSuccess: () => {
       toast.success(editId !== null ? "동아리가 수정되었습니다." : "동아리가 추가되었습니다.");
       setForm(emptyForm);
       setEditId(null);
-      fetchClubs();
-    } else {
-      const data = await res.json();
-      toast.error("저장 실패", { description: data.error });
-    }
+      queryClient.invalidateQueries({ queryKey: ["clubs"] });
+    },
+    onError: (err: Error) => toast.error("저장 실패", { description: err.message }),
+  });
 
-    setSubmitting(false);
-  };
+  const deleteMutation = useMutation({
+    mutationFn: (club: Club) =>
+      fetch(`/api/clubs/${club.id}`, { method: "DELETE" }).then((res) => {
+        if (!res.ok) throw new Error();
+        return club;
+      }),
+    onSuccess: (club) => {
+      toast.success(`"${club.name}" 동아리가 삭제되었습니다.`);
+      setDeleteTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["clubs"] });
+    },
+    onError: () => toast.error("삭제에 실패했습니다."),
+  });
 
   const handleEdit = (club: Club) => {
     setEditId(club.id);
@@ -113,18 +109,6 @@ export default function AdminClubs() {
       isOpen: club.isOpen,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
-    const res = await fetch(`/api/clubs/${deleteTarget.id}`, { method: "DELETE" });
-    if (res.ok) {
-      toast.success(`"${deleteTarget.name}" 동아리가 삭제되었습니다.`);
-      fetchClubs();
-    } else {
-      toast.error("삭제에 실패했습니다.");
-    }
-    setDeleteTarget(null);
   };
 
   const handleCancel = () => {
@@ -141,7 +125,13 @@ export default function AdminClubs() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveMutation.mutate(form);
+            }}
+            className="space-y-4"
+          >
             <div className="space-y-1.5">
               <Label htmlFor="name">동아리명</Label>
               <Input
@@ -217,8 +207,8 @@ export default function AdminClubs() {
               </Label>
             </div>
             <div className="flex gap-2">
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "저장 중..." : editId !== null ? "저장" : "추가"}
+              <Button type="submit" disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "저장 중..." : editId !== null ? "저장" : "추가"}
               </Button>
               {editId !== null && (
                 <Button type="button" variant="outline" onClick={handleCancel}>
@@ -232,7 +222,7 @@ export default function AdminClubs() {
 
       <Card>
         <CardContent className="p-0">
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-3 p-6">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-10 w-full" />
@@ -309,7 +299,11 @@ export default function AdminClubs() {
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
               취소
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+            >
               삭제
             </Button>
           </DialogFooter>

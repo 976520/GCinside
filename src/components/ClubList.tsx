@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Pin } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,16 +24,6 @@ interface Club {
   gradeEnrollments: { grade1: number; grade23: number };
 }
 
-function formatKST(utcStr: string): string {
-  return new Date(utcStr).toLocaleString("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 export default function ClubList({
   isLoggedIn,
   userGrade,
@@ -42,10 +33,7 @@ export default function ClubList({
   userGrade?: number | null;
   globalOpenAt?: string | null;
 }) {
-  const [clubs, setClubs] = useState<Club[]>([]);
-  const [enrolledIds, setEnrolledIds] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [pending, setPending] = useState<number | null>(null);
+  const queryClient = useQueryClient();
   const [now, setNow] = useState(() => new Date());
   const [pinnedIds, setPinnedIds] = useState<number[]>(() => {
     if (typeof window === "undefined") return [];
@@ -58,25 +46,74 @@ export default function ClubList({
   });
 
   useEffect(() => {
-    const fetchData = async () => {
-      const [clubsRes, enrollRes] = await Promise.all([
-        fetch("/api/clubs"),
-        isLoggedIn ? fetch("/api/enrollments") : Promise.resolve(null),
-      ]);
-      setClubs(await clubsRes.json());
-      if (enrollRes?.ok) {
-        const enrollData = await enrollRes.json();
-        setEnrolledIds(new Set(enrollData.map((e: { clubId: number }) => e.clubId)));
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [isLoggedIn]);
-
-  useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  const { data: clubs = [], isLoading: clubsLoading } = useQuery<Club[]>({
+    queryKey: ["clubs"],
+    queryFn: () => fetch("/api/clubs").then((r) => r.json()),
+    staleTime: 30_000,
+  });
+
+  const { data: enrolledIds = new Set<number>() } = useQuery<Set<number>>({
+    queryKey: ["enrollments"],
+    queryFn: () =>
+      fetch("/api/enrollments")
+        .then((r) => r.json())
+        .then((data: { clubId: number }[]) => new Set(data.map((e) => e.clubId))),
+    enabled: isLoggedIn,
+    staleTime: 0,
+  });
+
+  const enrollMutation = useMutation({
+    mutationFn: (clubId: number) =>
+      fetch("/api/enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clubId }),
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "오류가 발생했습니다.");
+        return clubId;
+      }),
+    onMutate: async (clubId) => {
+      await queryClient.cancelQueries({ queryKey: ["clubs"] });
+      const prevClubs = queryClient.getQueryData<Club[]>(["clubs"]);
+      queryClient.setQueryData<Club[]>(["clubs"], (old = []) =>
+        old.map((c) =>
+          c.id === clubId
+            ? {
+                ...c,
+                _count: { enrollments: c._count.enrollments + 1 },
+                gradeEnrollments: {
+                  ...c.gradeEnrollments,
+                  ...(userGrade === 1 && { grade1: c.gradeEnrollments.grade1 + 1 }),
+                  ...((userGrade === 2 || userGrade === 3) && {
+                    grade23: c.gradeEnrollments.grade23 + 1,
+                  }),
+                },
+              }
+            : c
+        )
+      );
+      queryClient.setQueryData<Set<number>>(["enrollments"], (old = new Set()) => {
+        const next = new Set(old);
+        next.add(clubId);
+        return next;
+      });
+      return { prevClubs };
+    },
+    onError: (err, _clubId, ctx) => {
+      if (ctx?.prevClubs) queryClient.setQueryData(["clubs"], ctx.prevClubs);
+      queryClient.invalidateQueries({ queryKey: ["enrollments"] });
+      toast.error("신청 실패", { description: err.message });
+    },
+    onSuccess: () => {
+      toast.success("신청 완료!", { description: "동아리 신청이 완료되었습니다." });
+      queryClient.invalidateQueries({ queryKey: ["clubs"] });
+    },
+  });
 
   const togglePin = (clubId: number) => {
     setPinnedIds((prev) => {
@@ -95,50 +132,15 @@ export default function ClubList({
     });
   };
 
-  const handleEnroll = async (clubId: number) => {
+  const handleEnroll = (clubId: number) => {
     if (!isLoggedIn) {
       window.location.href = "/api/auth/login";
       return;
     }
-
-    setPending(clubId);
-
-    const res = await fetch("/api/enrollments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clubId }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      setEnrolledIds((prev) => new Set([...prev, clubId]));
-      setClubs((prev) =>
-        prev.map((c) =>
-          c.id === clubId
-            ? {
-                ...c,
-                _count: { enrollments: c._count.enrollments + 1 },
-                gradeEnrollments: {
-                  ...c.gradeEnrollments,
-                  ...(userGrade === 1 && { grade1: c.gradeEnrollments.grade1 + 1 }),
-                  ...((userGrade === 2 || userGrade === 3) && {
-                    grade23: c.gradeEnrollments.grade23 + 1,
-                  }),
-                },
-              }
-            : c
-        )
-      );
-      toast.success("신청 완료!", { description: "동아리 신청이 완료되었습니다." });
-    } else {
-      toast.error("신청 실패", { description: data.error ?? "오류가 발생했습니다." });
-    }
-
-    setPending(null);
+    enrollMutation.mutate(clubId);
   };
 
-  if (loading) {
+  if (clubsLoading) {
     return (
       <div className="grid gap-4">
         {[1, 2, 3].map((i) => (
@@ -177,6 +179,7 @@ export default function ClubList({
         const isEnrolled = enrolledIds.has(club.id);
         const isNotOpenYet = !!globalOpenAt && now < new Date(globalOpenAt) && !club.isOpen;
         const isPinned = pinnedIds.includes(club.id);
+        const isPending = enrollMutation.isPending && enrollMutation.variables === club.id;
 
         const gradeCount =
           userGrade === 1
@@ -200,20 +203,19 @@ export default function ClubList({
         const isGradeNotAllowed = gradeCapacity === 0;
 
         const disabled =
-          isNotOpenYet || isEnrolled || isGradeFull || isGradeNotAllowed || pending === club.id;
+          isNotOpenYet || isEnrolled || isGradeFull || isGradeNotAllowed || isPending;
 
-        const buttonLabel =
-          pending === club.id
-            ? "처리중..."
-            : isEnrolled
-              ? "신청완료"
-              : isNotOpenYet
-                ? "신청 전"
-                : isGradeNotAllowed
-                  ? "신청불가"
-                  : isGradeFull
-                    ? "마감"
-                    : "신청하기";
+        const buttonLabel = isPending
+          ? "처리중..."
+          : isEnrolled
+            ? "신청완료"
+            : isNotOpenYet
+              ? "신청 전"
+              : isGradeNotAllowed
+                ? "신청불가"
+                : isGradeFull
+                  ? "마감"
+                  : "신청하기";
 
         const grades = [
           {
