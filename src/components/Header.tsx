@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { Sun, Moon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -27,6 +29,7 @@ interface User {
 export default function Header() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -48,7 +51,15 @@ export default function Header() {
         <Link href="/" className="text-lg font-bold tracking-tight">
           GCinside
         </Link>
-        <nav>
+        <nav className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            className="text-muted-foreground hover:text-foreground rounded-md p-1.5 transition-colors"
+            aria-label="테마 전환"
+          >
+            {resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </button>
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="outline-none">
