@@ -28,8 +28,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 interface Enrollment {
   id: number;
@@ -58,8 +56,6 @@ export default function AdminEnrollments() {
   const [selectedClub, setSelectedClub] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  const [editTarget, setEditTarget] = useState<Enrollment | null>(null);
-  const [editDate, setEditDate] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Enrollment | null>(null);
 
   const fetchEnrollments = async (clubId?: string) => {
@@ -85,29 +81,6 @@ export default function AdminEnrollments() {
     const clubId = !value || value === "all" ? "" : value;
     setSelectedClub(clubId);
     fetchEnrollments(clubId || undefined);
-  };
-
-  const handleEditOpen = (e: Enrollment) => {
-    setEditTarget(e);
-    const d = new Date(e.enrolledAt);
-    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    setEditDate(local);
-  };
-
-  const handleEditSave = async () => {
-    if (!editTarget) return;
-    const res = await fetch(`/api/enrollments/${editTarget.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enrolledAt: new Date(editDate).toISOString() }),
-    });
-    if (res.ok) {
-      toast.success("신청 시간이 수정되었습니다.");
-      setEditTarget(null);
-      fetchEnrollments(selectedClub || undefined);
-    } else {
-      toast.error("수정에 실패했습니다.");
-    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -172,10 +145,7 @@ export default function AdminEnrollments() {
                       <TableCell className="text-muted-foreground">
                         {new Date(e.enrolledAt).toLocaleString("ko-KR")}
                       </TableCell>
-                      <TableCell className="space-x-2 text-right whitespace-nowrap">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditOpen(e)}>
-                          시간 수정
-                        </Button>
+                      <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -200,33 +170,6 @@ export default function AdminEnrollments() {
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>신청 시간 수정</DialogTitle>
-            <DialogDescription>
-              {editTarget?.user.name}님의 <strong>{editTarget?.club.name}</strong> 신청 시간을
-              수정합니다.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-1.5 py-2">
-            <Label htmlFor="editDate">신청 시간</Label>
-            <Input
-              id="editDate"
-              type="datetime-local"
-              value={editDate}
-              onChange={(e) => setEditDate(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTarget(null)}>
-              취소
-            </Button>
-            <Button onClick={handleEditSave}>저장</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent>
