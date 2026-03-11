@@ -17,12 +17,19 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { openAt } = await req.json();
+  const { openAt, enrollmentEnabled } = await req.json();
 
   const settings = await prisma.settings.upsert({
     where: { id: 1 },
-    create: { id: 1, openAt: openAt ? new Date(openAt) : null },
-    update: { openAt: openAt ? new Date(openAt) : null },
+    create: {
+      id: 1,
+      openAt: openAt ? new Date(openAt) : null,
+      ...(enrollmentEnabled !== undefined && { enrollmentEnabled }),
+    },
+    update: {
+      ...(openAt !== undefined && { openAt: openAt ? new Date(openAt) : null }),
+      ...(enrollmentEnabled !== undefined && { enrollmentEnabled }),
+    },
   });
 
   return NextResponse.json(settings);

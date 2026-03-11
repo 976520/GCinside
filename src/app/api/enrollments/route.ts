@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
       if (!club.isOpen) throw new Error("CLUB_CLOSED");
 
       const now = new Date();
-      if (settings?.openAt && now < settings.openAt) throw new Error("NOT_OPEN_YET");
+      if (!settings?.enrollmentEnabled && settings?.openAt && now < settings.openAt)
+        throw new Error("NOT_OPEN_YET");
 
       const user = await tx.user.findUnique({
         where: { id: session.userId! },

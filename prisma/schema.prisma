@@ -40,8 +40,9 @@ model Club {
 }
 
 model Settings {
-  id     Int       @id @default(1)
-  openAt DateTime?
+  id                Int       @id @default(1)
+  openAt            DateTime?
+  enrollmentEnabled Boolean   @default(false)
 }
 
 model Enrollment {
