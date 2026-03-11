@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
 
-// 내 신청 목록 조회
+type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
 export async function GET() {
   const session = await getSession();
   if (!session.userId) {
@@ -19,7 +19,6 @@ export async function GET() {
   return NextResponse.json(enrollments);
 }
 
-// 수강 신청 (선착순)
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session.userId) {
@@ -32,8 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // 트랜잭션으로 선착순 처리 (동시성 방지)
-    const enrollment = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const enrollment = await prisma.$transaction(async (tx: TransactionClient) => {
       const club = await tx.club.findUnique({
         where: { id: Number(clubId) },
         select: { id: true, maxCapacity: true, isOpen: true },
@@ -68,7 +66,6 @@ export async function POST(req: NextRequest) {
     if (message === "CLUB_FULL")
       return NextResponse.json({ error: "정원이 마감되었습니다." }, { status: 409 });
 
-    // 중복 신청 (unique constraint)
     if (message.includes("Unique constraint")) {
       return NextResponse.json({ error: "이미 신청한 동아리입니다." }, { status: 409 });
     }
