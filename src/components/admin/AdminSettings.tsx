@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,56 @@ function SettingsForm({ initialOpenAt }: { initialOpenAt: string }) {
   );
 }
 
+function RefreshUsersButton() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      fetch("/api/admin/refresh-users", { method: "POST" }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "오류 발생");
+        return data as {
+          succeeded: number;
+          failed: number;
+          failedUsers: { name: string; reason: string }[];
+        };
+      }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["clubs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
+
+      if (data.failed === 0) {
+        toast.success(`학번/학년 갱신 완료`, {
+          description: `${data.succeeded}명 갱신됨`,
+        });
+      } else {
+        toast.warning(`갱신 완료 (일부 실패)`, {
+          description: `성공 ${data.succeeded}명 · 실패 ${data.failed}명`,
+        });
+      }
+    },
+    onError: (err: Error) => toast.error("갱신 실패", { description: err.message }),
+  });
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <Button variant="outline" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+          {mutation.isPending ? "갱신 중..." : "학번/학년 일괄 갱신"}
+        </Button>
+        <span className="text-muted-foreground text-xs">
+          DataGSM OAuth로 모든 학생의 학번·학년을 최신 정보로 갱신합니다
+        </span>
+      </div>
+      {mutation.isSuccess && mutation.data.failedUsers.length > 0 && (
+        <p className="text-destructive text-xs">
+          실패: {mutation.data.failedUsers.map((u) => u.name).join(", ")}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ["settings"],
@@ -76,20 +126,31 @@ export default function AdminSettings() {
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">신청 오픈 시간</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isLoading ? (
-          <Skeleton className="h-10 w-full" />
-        ) : (
-          <SettingsForm
-            key={settings?.openAt ?? "none"}
-            initialOpenAt={utcToKstInput(settings?.openAt ?? null)}
-          />
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">신청 오픈 시간</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoading ? (
+            <Skeleton className="h-10 w-full" />
+          ) : (
+            <SettingsForm
+              key={settings?.openAt ?? "none"}
+              initialOpenAt={utcToKstInput(settings?.openAt ?? null)}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">학생 정보 갱신</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RefreshUsersButton />
+        </CardContent>
+      </Card>
+    </div>
   );
 }

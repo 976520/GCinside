@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
         number: oauthUser.student?.number ?? null,
         major: oauthUser.student?.major ?? null,
         role,
+        refreshToken: tokens.refresh_token ?? null,
       },
       create: {
         oauthId: oauthUser.id,
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest) {
         number: oauthUser.student?.number ?? null,
         major: oauthUser.student?.major ?? null,
         role,
+        refreshToken: tokens.refresh_token ?? null,
       },
     });
 

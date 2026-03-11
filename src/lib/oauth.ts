@@ -92,10 +92,10 @@ export interface DatagsmUser {
     classNum: number;
     number: number;
     studentNumber: number;
-    major: string;
+    major: "SW_DEVELOPMENT" | "SMART_IOT" | "AI";
     dormitoryFloor: number;
     dormitoryRoom: number;
-    role: string;
+    role: "GENERAL_STUDENT" | "STUDENT_COUNCIL" | "DORMITORY_MANAGER" | "GRADUATE" | "WITHDRAWN";
     isLeaveSchool: boolean;
   } | null;
 }
@@ -112,6 +112,31 @@ export async function fetchUserInfo(accessToken: string): Promise<DatagsmUser> {
   }
 
   return (json?.data ?? json) as DatagsmUser;
+}
+
+export async function refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
+  const res = await fetch(`${OAUTH_BASE}/v1/oauth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: process.env.OAUTH_CLIENT_ID!,
+    }),
+  });
+
+  const json = await res.json();
+  const payload = json?.data ?? json;
+
+  if (payload?.error) {
+    throw new Error(`Token refresh failed: ${payload.error}`);
+  }
+
+  if (!payload?.access_token) {
+    throw new Error(`Token refresh failed: no access_token in response`);
+  }
+
+  return payload as TokenResponse;
 }
 
 export function isAdminEmail(email: string): boolean {
