@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/session";
 
 // 내 신청 목록 조회
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // 트랜잭션으로 선착순 처리 (동시성 방지)
-    const enrollment = await prisma.$transaction(async (tx) => {
+    const enrollment = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const club = await tx.club.findUnique({
         where: { id: Number(clubId) },
         select: { id: true, maxCapacity: true, isOpen: true },
