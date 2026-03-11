@@ -90,9 +90,15 @@ export async function POST(req: NextRequest) {
     if (message === "NOT_OPEN_YET")
       return NextResponse.json({ error: "아직 신청 시간이 아닙니다." }, { status: 409 });
     if (message === "GRADE_REQUIRED")
-      return NextResponse.json({ error: "학년 정보가 없습니다. 프로필을 먼저 설정해주세요." }, { status: 400 });
+      return NextResponse.json(
+        { error: "학년 정보가 없습니다. 프로필을 먼저 설정해주세요." },
+        { status: 400 }
+      );
     if (message === "GRADE_NOT_ALLOWED")
-      return NextResponse.json({ error: "해당 학년은 신청할 수 없는 동아리입니다." }, { status: 409 });
+      return NextResponse.json(
+        { error: "해당 학년은 신청할 수 없는 동아리입니다." },
+        { status: 409 }
+      );
     if (message === "GRADE_FULL")
       return NextResponse.json({ error: "해당 학년 정원이 마감되었습니다." }, { status: 409 });
 

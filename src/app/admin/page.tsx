@@ -7,15 +7,15 @@ export default function AdminPage() {
   return (
     <>
       <Header />
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold mb-8">Admin page</h1>
+      <main className="mx-auto max-w-4xl px-6 py-8">
+        <h1 className="mb-8 text-2xl font-bold">Admin page</h1>
         <div className="space-y-10">
           <section>
             <AdminClubs />
           </section>
           <Separator />
           <section>
-            <h2 className="text-lg font-semibold mb-4">신청 현황</h2>
+            <h2 className="mb-4 text-lg font-semibold">신청 현황</h2>
             <AdminEnrollments />
           </section>
         </div>

@@ -75,8 +75,10 @@ export default function AdminEnrollments() {
       const res = await fetch("/api/clubs");
       setClubs(await res.json());
     };
-    fetchClubs();
-    fetchEnrollments();
+
+    void fetchClubs();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchEnrollments();
   }, []);
 
   const handleClubFilter = (value: string | null) => {
@@ -88,9 +90,7 @@ export default function AdminEnrollments() {
   const handleEditOpen = (e: Enrollment) => {
     setEditTarget(e);
     const d = new Date(e.enrolledAt);
-    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 16);
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setEditDate(local);
   };
 
@@ -138,14 +138,16 @@ export default function AdminEnrollments() {
             ))}
           </SelectContent>
         </Select>
-        <span className="text-sm text-muted-foreground">{enrollments.length}명</span>
+        <span className="text-muted-foreground text-sm">{enrollments.length}명</span>
       </div>
 
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-6 space-y-3">
-              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+            <div className="space-y-3 p-6">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -170,12 +172,8 @@ export default function AdminEnrollments() {
                       <TableCell className="text-muted-foreground">
                         {new Date(e.enrolledAt).toLocaleString("ko-KR")}
                       </TableCell>
-                      <TableCell className="text-right space-x-2 whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditOpen(e)}
-                        >
+                      <TableCell className="space-x-2 text-right whitespace-nowrap">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditOpen(e)}>
                           시간 수정
                         </Button>
                         <Button
@@ -191,7 +189,7 @@ export default function AdminEnrollments() {
                   ))}
                   {enrollments.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={5} className="text-muted-foreground py-8 text-center">
                         신청 내역이 없습니다.
                       </TableCell>
                     </TableRow>
@@ -208,7 +206,8 @@ export default function AdminEnrollments() {
           <DialogHeader>
             <DialogTitle>신청 시간 수정</DialogTitle>
             <DialogDescription>
-              {editTarget?.user.name}님의 <strong>{editTarget?.club.name}</strong> 신청 시간을 수정합니다.
+              {editTarget?.user.name}님의 <strong>{editTarget?.club.name}</strong> 신청 시간을
+              수정합니다.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5 py-2">
@@ -221,7 +220,9 @@ export default function AdminEnrollments() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTarget(null)}>취소</Button>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>
+              취소
+            </Button>
             <Button onClick={handleEditSave}>저장</Button>
           </DialogFooter>
         </DialogContent>
@@ -237,8 +238,12 @@ export default function AdminEnrollments() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>아니오</Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>취소하기</Button>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              아니오
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              취소하기
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -44,7 +44,7 @@ export default function Header() {
 
   return (
     <header className="bg-background border-b">
-      <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-6">
         <Link href="/" className="text-lg font-bold tracking-tight">
           GCinside
         </Link>
@@ -62,11 +62,11 @@ export default function Header() {
                 <DropdownMenuGroup>
                   <DropdownMenuLabel className="flex flex-col gap-0.5">
                     <span className="text-sm font-medium">{user.name}</span>
-                    <span className="text-xs text-muted-foreground font-normal truncate">
+                    <span className="text-muted-foreground truncate text-xs font-normal">
                       {user.email}
                     </span>
                     {user.role === "ADMIN" && (
-                      <span className="text-xs text-primary font-normal">관리자</span>
+                      <span className="text-primary text-xs font-normal">관리자</span>
                     )}
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
@@ -90,10 +90,7 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <a
-              href="/api/auth/login"
-              className={cn(buttonVariants({ size: "sm" }))}
-            >
+            <a href="/api/auth/login" className={cn(buttonVariants({ size: "sm" }))}>
               Login
             </a>
           )}

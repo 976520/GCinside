@@ -25,9 +25,9 @@ export default async function HomePage({
     <>
       <Header />
       <ErrorToast error={error} />
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold mb-1">창체동아리 목록</h1>
-        <p className="text-muted-foreground text-sm mb-6">
+      <main className="mx-auto max-w-4xl px-6 py-8">
+        <h1 className="mb-1 text-2xl font-bold">창체동아리 목록</h1>
+        <p className="text-muted-foreground mb-6 text-sm">
           원하는 창체동아리를 선택해 선착순으로 신청하세요.
         </p>
         <ClubList isLoggedIn={!!session.userId} userGrade={userGrade} />

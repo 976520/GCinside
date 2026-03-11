@@ -27,10 +27,7 @@ export function generateState(): string {
   return base64UrlEncode(array);
 }
 
-export async function buildAuthorizationUrl(
-  codeVerifier: string,
-  state: string
-): Promise<string> {
+export async function buildAuthorizationUrl(codeVerifier: string, state: string): Promise<string> {
   const codeChallenge = await generateCodeChallenge(codeVerifier);
   const params = new URLSearchParams({
     client_id: process.env.OAUTH_CLIENT_ID!,

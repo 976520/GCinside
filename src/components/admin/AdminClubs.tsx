@@ -85,7 +85,10 @@ export default function AdminClubs() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchClubs(); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchClubs();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,17 +103,18 @@ export default function AdminClubs() {
       openAt: kstInputToUtc(form.openAt),
     };
 
-    const res = editId !== null
-      ? await fetch(`/api/clubs/${editId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      : await fetch("/api/clubs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+    const res =
+      editId !== null
+        ? await fetch(`/api/clubs/${editId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/clubs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
 
     if (res.ok) {
       toast.success(editId !== null ? "동아리가 수정되었습니다." : "동아리가 추가되었습니다.");
@@ -200,7 +204,10 @@ export default function AdminClubs() {
               <Label className="mb-2 block">학년별 정원</Label>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="grade1Capacity" className="text-muted-foreground text-xs font-normal">
+                  <Label
+                    htmlFor="grade1Capacity"
+                    className="text-muted-foreground text-xs font-normal"
+                  >
                     1학년 정원
                   </Label>
                   <Input
@@ -209,11 +216,16 @@ export default function AdminClubs() {
                     min={0}
                     required
                     value={form.grade1Capacity || ""}
-                    onChange={(e) => setForm((f) => ({ ...f, grade1Capacity: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, grade1Capacity: Number(e.target.value) }))
+                    }
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="grade23Capacity" className="text-muted-foreground text-xs font-normal">
+                  <Label
+                    htmlFor="grade23Capacity"
+                    className="text-muted-foreground text-xs font-normal"
+                  >
                     2·3학년 정원
                   </Label>
                   <Input
@@ -222,11 +234,15 @@ export default function AdminClubs() {
                     min={0}
                     required
                     value={form.grade23Capacity || ""}
-                    onChange={(e) => setForm((f) => ({ ...f, grade23Capacity: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, grade23Capacity: Number(e.target.value) }))
+                    }
                   />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1.5">0으로 설정하면 해당 학년은 신청 불가</p>
+              <p className="text-muted-foreground mt-1.5 text-xs">
+                0으로 설정하면 해당 학년은 신청 불가
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
@@ -234,7 +250,7 @@ export default function AdminClubs() {
                 checked={form.isOpen}
                 onCheckedChange={(v) => setForm((f) => ({ ...f, isOpen: !!v }))}
               />
-              <Label htmlFor="isOpen" className="font-normal cursor-pointer">
+              <Label htmlFor="isOpen" className="cursor-pointer font-normal">
                 신청 활성화
               </Label>
             </div>
@@ -255,8 +271,10 @@ export default function AdminClubs() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-6 space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+            <div className="space-y-3 p-6">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
             </div>
           ) : (
             <Table>
@@ -288,7 +306,7 @@ export default function AdminClubs() {
                         {club.isOpen ? "활성" : "마감"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right space-x-2">
+                    <TableCell className="space-x-2 text-right">
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(club)}>
                         수정
                       </Button>
@@ -305,7 +323,7 @@ export default function AdminClubs() {
                 ))}
                 {clubs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
                       등록된 창체동아리가 없습니다.
                     </TableCell>
                   </TableRow>
@@ -321,13 +339,17 @@ export default function AdminClubs() {
           <DialogHeader>
             <DialogTitle>동아리 삭제</DialogTitle>
             <DialogDescription>
-              <strong>&quot;{deleteTarget?.name}&quot;</strong> 동아리를 삭제하면 모든 신청 내역도 함께 삭제됩니다.
-              계속하시겠습니까?
+              <strong>&quot;{deleteTarget?.name}&quot;</strong> 동아리를 삭제하면 모든 신청 내역도
+              함께 삭제됩니다. 계속하시겠습니까?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>취소</Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>삭제</Button>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              취소
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              삭제
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

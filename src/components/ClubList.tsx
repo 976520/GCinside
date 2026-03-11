@@ -46,14 +46,15 @@ export default function ClubList({
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<number | null>(null);
   const [now, setNow] = useState(() => new Date());
-  const [pinnedIds, setPinnedIds] = useState<number[]>([]);
-
-  useEffect(() => {
+  const [pinnedIds, setPinnedIds] = useState<number[]>(() => {
+    if (typeof window === "undefined") return [];
     try {
       const stored = localStorage.getItem(PIN_STORAGE_KEY);
-      if (stored) setPinnedIds(JSON.parse(stored));
-    } catch {}
-  }, []);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,7 +121,9 @@ export default function ClubList({
                 gradeEnrollments: {
                   ...c.gradeEnrollments,
                   ...(userGrade === 1 && { grade1: c.gradeEnrollments.grade1 + 1 }),
-                  ...((userGrade === 2 || userGrade === 3) && { grade23: c.gradeEnrollments.grade23 + 1 }),
+                  ...((userGrade === 2 || userGrade === 3) && {
+                    grade23: c.gradeEnrollments.grade23 + 1,
+                  }),
                 },
               }
             : c
@@ -141,7 +144,7 @@ export default function ClubList({
           <Card key={i}>
             <CardHeader>
               <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-4 w-64 mt-1" />
+              <Skeleton className="mt-1 h-4 w-64" />
             </CardHeader>
             <CardContent>
               <Skeleton className="h-2 w-full" />
@@ -155,7 +158,7 @@ export default function ClubList({
   if (clubs.length === 0) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
+        <CardContent className="text-muted-foreground py-12 text-center">
           등록된 동아리가 없습니다.
         </CardContent>
       </Card>
@@ -176,32 +179,62 @@ export default function ClubList({
         const isPinned = pinnedIds.includes(club.id);
 
         const gradeCount =
-          userGrade === 1 ? club.gradeEnrollments.grade1
-          : (userGrade === 2 || userGrade === 3) ? club.gradeEnrollments.grade23
-          : null;
+          userGrade === 1
+            ? club.gradeEnrollments.grade1
+            : userGrade === 2 || userGrade === 3
+              ? club.gradeEnrollments.grade23
+              : null;
 
         const gradeCapacity =
-          userGrade === 1 ? club.grade1Capacity
-          : (userGrade === 2 || userGrade === 3) ? club.grade23Capacity
-          : null;
+          userGrade === 1
+            ? club.grade1Capacity
+            : userGrade === 2 || userGrade === 3
+              ? club.grade23Capacity
+              : null;
 
-        const isGradeFull = gradeCapacity !== null && gradeCapacity > 0 && gradeCount !== null && gradeCount >= gradeCapacity;
+        const isGradeFull =
+          gradeCapacity !== null &&
+          gradeCapacity > 0 &&
+          gradeCount !== null &&
+          gradeCount >= gradeCapacity;
         const isGradeNotAllowed = gradeCapacity === 0;
 
-        const disabled = isClosed || isNotOpenYet || isEnrolled || isGradeFull || isGradeNotAllowed || pending === club.id;
+        const disabled =
+          isClosed ||
+          isNotOpenYet ||
+          isEnrolled ||
+          isGradeFull ||
+          isGradeNotAllowed ||
+          pending === club.id;
 
         const buttonLabel =
-          pending === club.id ? "처리중..."
-          : isEnrolled ? "신청완료"
-          : isClosed ? "비활성"
-          : isNotOpenYet ? "신청 전"
-          : isGradeNotAllowed ? "신청불가"
-          : isGradeFull ? "마감"
-          : "신청하기";
+          pending === club.id
+            ? "처리중..."
+            : isEnrolled
+              ? "신청완료"
+              : isClosed
+                ? "비활성"
+                : isNotOpenYet
+                  ? "신청 전"
+                  : isGradeNotAllowed
+                    ? "신청불가"
+                    : isGradeFull
+                      ? "마감"
+                      : "신청하기";
 
         const grades = [
-          { label: "1학년", count: club.gradeEnrollments.grade1, capacity: club.grade1Capacity, isMyGrade: userGrade === 1 },
-          { label: "2·3학년", count: club.gradeEnrollments.grade23, capacity: club.grade23Capacity, isMyGrade: userGrade === 2 || userGrade === 3 },
+          {
+            label: "1학년",
+            count: club.gradeEnrollments.grade1,
+            capacity: club.grade1Capacity,
+            isMyGrade: userGrade === 1,
+          },
+          {
+            label: "2·3학년",
+            count: club.gradeEnrollments.grade23,
+            capacity: club.grade23Capacity,
+            isMyGrade: userGrade === 2 || userGrade === 3,
+          },
         ];
 
         return (
@@ -217,18 +250,16 @@ export default function ClubList({
                   </CardTitle>
                   <CardDescription>{club.description}</CardDescription>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex shrink-0 items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => togglePin(club.id)}
-                    className={`p-1.5 rounded-md transition-colors ${
-                      isPinned
-                        ? "text-primary"
-                        : "text-muted-foreground hover:text-foreground"
+                    className={`rounded-md p-1.5 transition-colors ${
+                      isPinned ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     }`}
                     title={isPinned ? "핀 해제" : "상단 고정"}
                   >
-                    <Pin className="w-4 h-4" fill={isPinned ? "currentColor" : "none"} />
+                    <Pin className="h-4 w-4" fill={isPinned ? "currentColor" : "none"} />
                   </button>
                   <Button
                     size="sm"
@@ -241,8 +272,10 @@ export default function ClubList({
                 </div>
               </div>
               {club.openAt && (
-                <p className="text-xs text-muted-foreground">
-                  {isNotOpenYet ? `신청 오픈: ${formatKST(club.openAt)}` : `오픈됨: ${formatKST(club.openAt)}`}
+                <p className="text-muted-foreground text-xs">
+                  {isNotOpenYet
+                    ? `신청 오픈: ${formatKST(club.openAt)}`
+                    : `오픈됨: ${formatKST(club.openAt)}`}
                 </p>
               )}
             </CardHeader>
@@ -253,11 +286,15 @@ export default function ClubList({
                   const pct = Math.round((count / capacity) * 100);
                   return (
                     <div key={label} className="flex items-center gap-3">
-                      <span className={`text-xs w-12 shrink-0 ${isMyGrade ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                      <span
+                        className={`w-12 shrink-0 text-xs ${isMyGrade ? "text-foreground font-semibold" : "text-muted-foreground"}`}
+                      >
                         {label}
                       </span>
-                      <Progress value={pct} className="flex-1 h-1.5" />
-                      <span className={`text-xs shrink-0 tabular-nums ${isMyGrade ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                      <Progress value={pct} className="h-1.5 flex-1" />
+                      <span
+                        className={`shrink-0 text-xs tabular-nums ${isMyGrade ? "text-foreground font-semibold" : "text-muted-foreground"}`}
+                      >
                         {count} / {capacity}
                       </span>
                     </div>

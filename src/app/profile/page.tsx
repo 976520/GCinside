@@ -36,52 +36,54 @@ export default async function ProfilePage() {
   return (
     <>
       <Header />
-      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      <main className="mx-auto max-w-4xl space-y-8 px-6 py-8">
         <section>
-          <h1 className="text-2xl font-bold mb-4">My Profile</h1>
-          <div className="rounded-xl border bg-card p-6 space-y-4">
+          <h1 className="mb-4 text-2xl font-bold">My Profile</h1>
+          <div className="bg-card space-y-4 rounded-xl border p-6">
             <div className="flex items-center gap-4">
-              <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center text-lg font-semibold text-primary">
+              <div className="bg-primary/10 text-primary flex size-14 items-center justify-center rounded-full text-lg font-semibold">
                 {user.name.slice(0, 2)}
               </div>
               <div>
                 <p className="text-lg font-semibold">{user.name}</p>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
+                <p className="text-muted-foreground text-sm">{user.email}</p>
                 {user.role === "ADMIN" && (
-                  <Badge variant="default" className="mt-1">관리자</Badge>
+                  <Badge variant="default" className="mt-1">
+                    관리자
+                  </Badge>
                 )}
               </div>
             </div>
 
             {(user.grade || user.classNum || user.number || user.major || user.studentNumber) && (
-              <div className="border-t pt-4 grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3 border-t pt-4 text-sm">
                 {user.studentNumber && (
                   <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">학번</p>
+                    <p className="text-muted-foreground mb-0.5 text-xs">학번</p>
                     <p className="font-medium">{user.studentNumber}</p>
                   </div>
                 )}
                 {user.grade && (
                   <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">학년</p>
+                    <p className="text-muted-foreground mb-0.5 text-xs">학년</p>
                     <p className="font-medium">{user.grade}학년</p>
                   </div>
                 )}
                 {user.classNum && (
                   <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">반</p>
+                    <p className="text-muted-foreground mb-0.5 text-xs">반</p>
                     <p className="font-medium">{user.classNum}반</p>
                   </div>
                 )}
                 {user.number && (
                   <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">번호</p>
+                    <p className="text-muted-foreground mb-0.5 text-xs">번호</p>
                     <p className="font-medium">{user.number}번</p>
                   </div>
                 )}
                 {user.major && (
                   <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">학과</p>
+                    <p className="text-muted-foreground mb-0.5 text-xs">학과</p>
                     <p className="font-medium">{MAJOR_LABELS[user.major] ?? user.major}</p>
                   </div>
                 )}
@@ -91,9 +93,9 @@ export default async function ProfilePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-3">신청한 동아리</h2>
+          <h2 className="mb-3 text-lg font-semibold">신청한 동아리</h2>
           {user.enrollments.length === 0 ? (
-            <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground text-sm">
+            <div className="bg-card text-muted-foreground rounded-xl border p-8 text-center text-sm">
               아직 신청한 동아리가 없어요.{" "}
               <Link href="/" className="text-primary underline underline-offset-4">
                 동아리를 둘러보세요.
@@ -104,11 +106,11 @@ export default async function ProfilePage() {
               {user.enrollments.map((enrollment: Enrollment & { club: Club }) => (
                 <li
                   key={enrollment.id}
-                  className="rounded-xl border bg-card p-4 flex items-center justify-between"
+                  className="bg-card flex items-center justify-between rounded-xl border p-4"
                 >
                   <div>
                     <p className="font-medium">{enrollment.club.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                    <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">
                       {enrollment.club.description}
                     </p>
                   </div>

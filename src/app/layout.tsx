@@ -11,11 +11,7 @@ export const metadata: Metadata = {
   description: "GSM 창체동아리 수강신청 서비스",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" suppressHydrationWarning>
       <body className={geist.className}>

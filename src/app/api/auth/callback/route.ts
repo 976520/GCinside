@@ -63,9 +63,7 @@ export async function GET(req: NextRequest) {
     session.oauthState = undefined;
     await session.save();
 
-    return NextResponse.redirect(
-      new URL(role === "ADMIN" ? "/admin" : "/", req.url)
-    );
+    return NextResponse.redirect(new URL(role === "ADMIN" ? "/admin" : "/", req.url));
   } catch (err) {
     console.error("OAuth callback error:", err);
     return NextResponse.redirect(new URL("/?error=auth_failed", req.url));
