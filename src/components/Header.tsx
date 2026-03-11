@@ -3,6 +3,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { buttonVariants } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface User {
   id: number;
@@ -24,46 +37,62 @@ export default function Header() {
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
+    toast.success("로그아웃되었습니다.");
     router.push("/");
     router.refresh();
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="max-w-4xl mx-auto flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold text-blue-600">
+    <header className="bg-background border-b">
+      <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+        <Link href="/" className="text-lg font-bold tracking-tight">
           GCinside
         </Link>
-        <nav className="flex items-center gap-4">
+        <nav>
           {user ? (
-            <>
-              <span className="text-sm text-gray-600">
-                {user.name}
+            <DropdownMenu>
+              <DropdownMenuTrigger className="outline-none">
+                <Avatar className="size-8 cursor-pointer">
+                  <AvatarFallback className="text-xs font-medium">
+                    {user.name.slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium">{user.name}</span>
+                    <span className="text-xs text-muted-foreground font-normal truncate">
+                      {user.email}
+                    </span>
+                    {user.role === "ADMIN" && (
+                      <span className="text-xs text-primary font-normal">관리자</span>
+                    )}
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Link href="/profile" className="w-full">
+                    내 프로필
+                  </Link>
+                </DropdownMenuItem>
                 {user.role === "ADMIN" && (
-                  <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                    관리자
-                  </span>
+                  <DropdownMenuItem>
+                    <Link href="/admin" className="w-full">
+                      관리 페이지
+                    </Link>
+                  </DropdownMenuItem>
                 )}
-              </span>
-              {user.role === "ADMIN" && (
-                <Link
-                  href="/admin"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  관리 페이지
-                </Link>
-              )}
-              <button
-                onClick={handleLogout}
-                className="text-sm text-gray-500 hover:text-red-500"
-              >
-                로그아웃
-              </button>
-            </>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                  로그아웃
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <a
               href="/api/auth/login"
-              className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              className={cn(buttonVariants({ size: "sm" }))}
             >
               로그인
             </a>
