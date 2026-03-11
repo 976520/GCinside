@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
+import type { Enrollment, Club } from "@prisma/client";
 
 const MAJOR_LABELS: Record<string, string> = {
   SW_DEVELOPMENT: "소프트웨어개발",
@@ -100,7 +101,7 @@ export default async function ProfilePage() {
             </div>
           ) : (
             <ul className="space-y-3">
-              {user.enrollments.map((enrollment) => (
+              {user.enrollments.map((enrollment: Enrollment & { club: Club }) => (
                 <li
                   key={enrollment.id}
                   className="rounded-xl border bg-card p-4 flex items-center justify-between"
