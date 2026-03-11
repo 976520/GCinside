@@ -46,7 +46,7 @@ export default function AdminSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">신청 오픈 시간 (공통)</CardTitle>
+        <CardTitle className="text-base">신청 오픈 시간</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-end gap-3">
