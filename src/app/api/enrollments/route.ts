@@ -41,10 +41,9 @@ export async function POST(req: NextRequest) {
       ]);
 
       if (!club) throw new Error("CLUB_NOT_FOUND");
-      if (!club.isOpen) throw new Error("CLUB_CLOSED");
 
       const now = new Date();
-      if (!settings?.enrollmentEnabled && settings?.openAt && now < settings.openAt)
+      if (!club.isOpen && settings?.openAt && now < settings.openAt)
         throw new Error("NOT_OPEN_YET");
 
       const user = await tx.user.findUnique({
@@ -83,8 +82,6 @@ export async function POST(req: NextRequest) {
 
     if (message === "CLUB_NOT_FOUND")
       return NextResponse.json({ error: "동아리를 찾을 수 없습니다." }, { status: 404 });
-    if (message === "CLUB_CLOSED")
-      return NextResponse.json({ error: "신청이 마감된 동아리입니다." }, { status: 409 });
     if (message === "NOT_OPEN_YET")
       return NextResponse.json({ error: "아직 신청 시간이 아닙니다." }, { status: 409 });
     if (message === "GRADE_REQUIRED")

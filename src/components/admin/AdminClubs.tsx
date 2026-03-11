@@ -213,7 +213,7 @@ export default function AdminClubs() {
                 onCheckedChange={(v) => setForm((f) => ({ ...f, isOpen: !!v }))}
               />
               <Label htmlFor="isOpen" className="cursor-pointer font-normal">
-                신청 활성화
+                오픈 시간 관계없이 즉시 신청 가능
               </Label>
             </div>
             <div className="flex gap-2">
@@ -265,7 +265,7 @@ export default function AdminClubs() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={club.isOpen ? "default" : "secondary"}>
-                        {club.isOpen ? "활성" : "마감"}
+                        {club.isOpen ? "활성" : "대기"}
                       </Badge>
                     </TableCell>
                     <TableCell className="space-x-2 text-right">

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +20,6 @@ function kstInputToUtc(kstStr: string): string | null {
 
 export default function AdminSettings() {
   const [openAt, setOpenAt] = useState("");
-  const [enrollmentEnabled, setEnrollmentEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -29,7 +27,6 @@ export default function AdminSettings() {
       .then((r) => r.json())
       .then((data) => {
         setOpenAt(utcToKstInput(data.openAt));
-        setEnrollmentEnabled(data.enrollmentEnabled ?? false);
       });
   }, []);
 
@@ -38,7 +35,7 @@ export default function AdminSettings() {
     const res = await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ openAt: kstInputToUtc(openAt), enrollmentEnabled }),
+      body: JSON.stringify({ openAt: kstInputToUtc(openAt) }),
     });
     if (res.ok) {
       toast.success("저장되었습니다.");
@@ -54,16 +51,6 @@ export default function AdminSettings() {
         <CardTitle className="text-base">신청 오픈 시간</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="enrollmentEnabled"
-            checked={enrollmentEnabled}
-            onCheckedChange={(checked) => setEnrollmentEnabled(checked === true)}
-          />
-          <Label htmlFor="enrollmentEnabled" className="cursor-pointer">
-            신청 활성화 (체크 시 시간 제한 없이 즉시 신청 가능)
-          </Label>
-        </div>
         <div className="flex items-end gap-3">
           <div className="flex-1 space-y-1.5">
             <Label htmlFor="globalOpenAt" className="text-muted-foreground text-xs font-normal">

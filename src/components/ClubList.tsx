@@ -175,8 +175,7 @@ export default function ClubList({
     <div className="grid gap-4">
       {sortedClubs.map((club) => {
         const isEnrolled = enrolledIds.has(club.id);
-        const isClosed = !club.isOpen;
-        const isNotOpenYet = !!globalOpenAt && now < new Date(globalOpenAt);
+        const isNotOpenYet = !!globalOpenAt && now < new Date(globalOpenAt) && !club.isOpen;
         const isPinned = pinnedIds.includes(club.id);
 
         const gradeCount =
@@ -201,27 +200,20 @@ export default function ClubList({
         const isGradeNotAllowed = gradeCapacity === 0;
 
         const disabled =
-          isClosed ||
-          isNotOpenYet ||
-          isEnrolled ||
-          isGradeFull ||
-          isGradeNotAllowed ||
-          pending === club.id;
+          isNotOpenYet || isEnrolled || isGradeFull || isGradeNotAllowed || pending === club.id;
 
         const buttonLabel =
           pending === club.id
             ? "처리중..."
             : isEnrolled
               ? "신청완료"
-              : isClosed
-                ? "비활성"
-                : isNotOpenYet
-                  ? "신청 전"
-                  : isGradeNotAllowed
-                    ? "신청불가"
-                    : isGradeFull
-                      ? "마감"
-                      : "신청하기";
+              : isNotOpenYet
+                ? "신청 전"
+                : isGradeNotAllowed
+                  ? "신청불가"
+                  : isGradeFull
+                    ? "마감"
+                    : "신청하기";
 
         const grades = [
           {
@@ -245,7 +237,6 @@ export default function ClubList({
                 <div className="space-y-1">
                   <CardTitle className="flex items-center gap-2">
                     {club.name}
-                    {isClosed && <Badge variant="secondary">비활성</Badge>}
                     {isNotOpenYet && <Badge variant="outline">신청 전</Badge>}
                     {isEnrolled && <Badge>신청완료</Badge>}
                   </CardTitle>
