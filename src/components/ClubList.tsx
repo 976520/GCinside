@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Pin } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+
+const PIN_STORAGE_KEY = "pinned_clubs";
+const MAX_PINS = 3;
 
 interface Club {
   id: number;
@@ -42,6 +46,14 @@ export default function ClubList({
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<number | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [pinnedIds, setPinnedIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PIN_STORAGE_KEY);
+      if (stored) setPinnedIds(JSON.parse(stored));
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,11 +71,27 @@ export default function ClubList({
     fetchData();
   }, [isLoggedIn]);
 
-  // 1분마다 현재 시간 갱신 (오픈 시간 체크용)
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  const togglePin = (clubId: number) => {
+    setPinnedIds((prev) => {
+      let next: number[];
+      if (prev.includes(clubId)) {
+        next = prev.filter((id) => id !== clubId);
+      } else {
+        if (prev.length >= MAX_PINS) {
+          toast.error(`핀은 최대 ${MAX_PINS}개까지만 가능합니다.`);
+          return prev;
+        }
+        next = [...prev, clubId];
+      }
+      localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const handleEnroll = async (clubId: number) => {
     if (!isLoggedIn) {
@@ -134,12 +162,18 @@ export default function ClubList({
     );
   }
 
+  const sortedClubs = [
+    ...clubs.filter((c) => pinnedIds.includes(c.id)),
+    ...clubs.filter((c) => !pinnedIds.includes(c.id)),
+  ];
+
   return (
     <div className="grid gap-4">
-      {clubs.map((club) => {
+      {sortedClubs.map((club) => {
         const isEnrolled = enrolledIds.has(club.id);
         const isClosed = !club.isOpen;
         const isNotOpenYet = !!club.openAt && now < new Date(club.openAt);
+        const isPinned = pinnedIds.includes(club.id);
 
         const gradeCount =
           userGrade === 1 ? club.gradeEnrollments.grade1
@@ -171,7 +205,7 @@ export default function ClubList({
         ];
 
         return (
-          <Card key={club.id}>
+          <Card key={club.id} className={isPinned ? "border-primary/50" : ""}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
@@ -183,15 +217,28 @@ export default function ClubList({
                   </CardTitle>
                   <CardDescription>{club.description}</CardDescription>
                 </div>
-                <Button
-                  size="sm"
-                  variant={isEnrolled ? "secondary" : disabled ? "outline" : "default"}
-                  disabled={disabled}
-                  onClick={() => handleEnroll(club.id)}
-                  className="shrink-0"
-                >
-                  {buttonLabel}
-                </Button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => togglePin(club.id)}
+                    className={`p-1.5 rounded-md transition-colors ${
+                      isPinned
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title={isPinned ? "핀 해제" : "상단 고정"}
+                  >
+                    <Pin className="w-4 h-4" fill={isPinned ? "currentColor" : "none"} />
+                  </button>
+                  <Button
+                    size="sm"
+                    variant={isEnrolled ? "secondary" : disabled ? "outline" : "default"}
+                    disabled={disabled}
+                    onClick={() => handleEnroll(club.id)}
+                  >
+                    {buttonLabel}
+                  </Button>
+                </div>
               </div>
               {club.openAt && (
                 <p className="text-xs text-muted-foreground">
