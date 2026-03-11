@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 
 interface Club {
   id: number;
@@ -16,7 +22,6 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [enrolledIds, setEnrolledIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<number | null>(null);
-  const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -24,14 +29,11 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
         fetch("/api/clubs"),
         isLoggedIn ? fetch("/api/enrollments") : Promise.resolve(null),
       ]);
-      const clubsData = await clubsRes.json();
-      setClubs(clubsData);
-
+      setClubs(await clubsRes.json());
       if (enrollRes?.ok) {
         const enrollData = await enrollRes.json();
         setEnrolledIds(new Set(enrollData.map((e: { clubId: number }) => e.clubId)));
       }
-
       setLoading(false);
     };
     fetchData();
@@ -44,7 +46,6 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
     }
 
     setPending(clubId);
-    setMessage(null);
 
     const res = await fetch("/api/enrollments", {
       method: "POST",
@@ -63,9 +64,9 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
             : c
         )
       );
-      setMessage({ type: "ok", text: "신청이 완료되었습니다!" });
+      toast.success("신청 완료!", { description: "동아리 신청이 완료되었습니다." });
     } else {
-      setMessage({ type: "err", text: data.error ?? "오류가 발생했습니다." });
+      toast.error("신청 실패", { description: data.error ?? "오류가 발생했습니다." });
     }
 
     setPending(null);
@@ -75,98 +76,80 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
     return (
       <div className="grid gap-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-64 mt-1" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-2 w-full" />
+            </CardContent>
+          </Card>
         ))}
       </div>
     );
   }
 
-  return (
-    <>
-      {message && (
-        <div
-          className={`mb-4 p-3 rounded-lg text-sm ${
-            message.type === "ok"
-              ? "bg-green-50 border border-green-200 text-green-700"
-              : "bg-red-50 border border-red-200 text-red-700"
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
-      <div className="grid gap-4">
-        {clubs.map((club) => {
-          const isFull = club._count.enrollments >= club.maxCapacity;
-          const isEnrolled = enrolledIds.has(club.id);
-          const isClosed = !club.isOpen;
+  if (clubs.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          등록된 동아리가 없습니다.
+        </CardContent>
+      </Card>
+    );
+  }
 
-          return (
-            <div
-              key={club.id}
-              className="bg-white border border-gray-200 rounded-xl p-5 flex items-start justify-between gap-4"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h2 className="font-semibold text-gray-900">{club.name}</h2>
-                  {isClosed && (
-                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                      마감
-                    </span>
-                  )}
-                  {isEnrolled && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                      신청완료
-                    </span>
-                  )}
+  return (
+    <div className="grid gap-4">
+      {clubs.map((club) => {
+        const isFull = club._count.enrollments >= club.maxCapacity;
+        const isEnrolled = enrolledIds.has(club.id);
+        const isClosed = !club.isOpen;
+        const pct = Math.round((club._count.enrollments / club.maxCapacity) * 100);
+
+        return (
+          <Card key={club.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2">
+                    {club.name}
+                    {isClosed && <Badge variant="secondary">마감</Badge>}
+                    {isEnrolled && <Badge>신청완료</Badge>}
+                  </CardTitle>
+                  <CardDescription>{club.description}</CardDescription>
                 </div>
-                <p className="text-sm text-gray-500 mb-3">{club.description}</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-100 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all ${
-                        isFull ? "bg-red-400" : "bg-blue-400"
-                      }`}
-                      style={{
-                        width: `${Math.min(
-                          (club._count.enrollments / club.maxCapacity) * 100,
-                          100
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs text-gray-500 shrink-0">
-                    {club._count.enrollments} / {club.maxCapacity}
-                  </span>
-                </div>
+                <Button
+                  size="sm"
+                  variant={isEnrolled ? "secondary" : isFull || isClosed ? "outline" : "default"}
+                  disabled={isFull || isEnrolled || isClosed || pending === club.id}
+                  onClick={() => handleEnroll(club.id)}
+                  className="shrink-0"
+                >
+                  {pending === club.id
+                    ? "처리중..."
+                    : isEnrolled
+                    ? "신청완료"
+                    : isFull
+                    ? "마감"
+                    : isClosed
+                    ? "비활성"
+                    : "신청하기"}
+                </Button>
               </div>
-              <button
-                onClick={() => handleEnroll(club.id)}
-                disabled={isFull || isEnrolled || isClosed || pending === club.id}
-                className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isEnrolled
-                    ? "bg-blue-50 text-blue-600 cursor-default"
-                    : isFull || isClosed
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                {pending === club.id
-                  ? "처리중..."
-                  : isEnrolled
-                  ? "신청완료"
-                  : isFull
-                  ? "마감"
-                  : isClosed
-                  ? "비활성"
-                  : "신청하기"}
-              </button>
-            </div>
-          );
-        })}
-        {clubs.length === 0 && (
-          <p className="text-center text-gray-400 py-12">등록된 동아리가 없습니다.</p>
-        )}
-      </div>
-    </>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <Progress value={pct} className="flex-1 h-2" />
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {club._count.enrollments} / {club.maxCapacity}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
   );
 }
