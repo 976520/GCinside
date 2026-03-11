@@ -272,11 +272,6 @@ export default function ClubList({
                   </Button>
                 </div>
               </div>
-              {globalOpenAt && isNotOpenYet && (
-                <p className="text-muted-foreground text-xs">
-                  신청 오픈: {formatKST(globalOpenAt)}
-                </p>
-              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
