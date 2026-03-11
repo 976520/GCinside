@@ -32,22 +32,19 @@ export async function POST(req: NextRequest) {
 
   try {
     const enrollment = await prisma.$transaction(async (tx: TransactionClient) => {
-      const club = await tx.club.findUnique({
-        where: { id: Number(clubId) },
-        select: {
-          id: true,
-          grade1Capacity: true,
-          grade23Capacity: true,
-          isOpen: true,
-          openAt: true,
-        },
-      });
+      const [club, settings] = await Promise.all([
+        tx.club.findUnique({
+          where: { id: Number(clubId) },
+          select: { id: true, grade1Capacity: true, grade23Capacity: true, isOpen: true },
+        }),
+        tx.settings.findUnique({ where: { id: 1 } }),
+      ]);
 
       if (!club) throw new Error("CLUB_NOT_FOUND");
       if (!club.isOpen) throw new Error("CLUB_CLOSED");
 
       const now = new Date();
-      if (club.openAt && now < club.openAt) throw new Error("NOT_OPEN_YET");
+      if (settings?.openAt && now < settings.openAt) throw new Error("NOT_OPEN_YET");
 
       const user = await tx.user.findUnique({
         where: { id: session.userId! },

@@ -13,6 +13,7 @@ export interface SessionData {
 }
 
 declare module "iron-session" {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface IronSessionData extends SessionData {}
 }
 

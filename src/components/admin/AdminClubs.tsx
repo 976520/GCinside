@@ -34,7 +34,7 @@ interface Club {
   grade1Capacity: number;
   grade23Capacity: number;
   isOpen: boolean;
-  openAt: string | null;
+  gradeEnrollments: { grade1: number; grade23: number };
   _count: { enrollments: number };
 }
 
@@ -44,32 +44,7 @@ const emptyForm = {
   grade1Capacity: 0,
   grade23Capacity: 0,
   isOpen: true,
-  openAt: "",
 };
-
-function utcToKstInput(utcStr: string | null): string {
-  if (!utcStr) return "";
-  const date = new Date(utcStr);
-  const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-  return kst.toISOString().slice(0, 16);
-}
-
-function kstInputToUtc(kstStr: string): string | null {
-  if (!kstStr) return null;
-  return new Date(kstStr + ":00+09:00").toISOString();
-}
-
-function formatKST(utcStr: string | null): string {
-  if (!utcStr) return "-";
-  return new Date(utcStr).toLocaleString("ko-KR", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default function AdminClubs() {
   const [clubs, setClubs] = useState<Club[]>([]);
@@ -100,7 +75,6 @@ export default function AdminClubs() {
       grade1Capacity: form.grade1Capacity,
       grade23Capacity: form.grade23Capacity,
       isOpen: form.isOpen,
-      openAt: kstInputToUtc(form.openAt),
     };
 
     const res =
@@ -137,7 +111,6 @@ export default function AdminClubs() {
       grade1Capacity: club.grade1Capacity,
       grade23Capacity: club.grade23Capacity,
       isOpen: club.isOpen,
-      openAt: utcToKstInput(club.openAt),
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -169,25 +142,14 @@ export default function AdminClubs() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="name">동아리명</Label>
-                <Input
-                  id="name"
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="openAt">신청 오픈 시간 (KST)</Label>
-                <Input
-                  id="openAt"
-                  type="datetime-local"
-                  value={form.openAt}
-                  onChange={(e) => setForm((f) => ({ ...f, openAt: e.target.value }))}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="name">동아리명</Label>
+              <Input
+                id="name"
+                required
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="description">설명</Label>
@@ -215,7 +177,7 @@ export default function AdminClubs() {
                     type="number"
                     min={0}
                     required
-                    value={form.grade1Capacity || ""}
+                    value={form.grade1Capacity}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, grade1Capacity: Number(e.target.value) }))
                     }
@@ -233,7 +195,7 @@ export default function AdminClubs() {
                     type="number"
                     min={0}
                     required
-                    value={form.grade23Capacity || ""}
+                    value={form.grade23Capacity}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, grade23Capacity: Number(e.target.value) }))
                     }
@@ -283,7 +245,6 @@ export default function AdminClubs() {
                   <TableHead>동아리명</TableHead>
                   <TableHead>1학년</TableHead>
                   <TableHead>2·3학년</TableHead>
-                  <TableHead>오픈 시간</TableHead>
                   <TableHead>상태</TableHead>
                   <TableHead className="text-right">관리</TableHead>
                 </TableRow>
@@ -293,13 +254,14 @@ export default function AdminClubs() {
                   <TableRow key={club.id}>
                     <TableCell className="font-medium">{club.name}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {club.grade1Capacity > 0 ? `- / ${club.grade1Capacity}` : "불가"}
+                      {club.grade1Capacity > 0
+                        ? `${club.gradeEnrollments.grade1} / ${club.grade1Capacity}`
+                        : "불가"}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {club.grade23Capacity > 0 ? `- / ${club.grade23Capacity}` : "불가"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                      {formatKST(club.openAt)}
+                      {club.grade23Capacity > 0
+                        ? `${club.gradeEnrollments.grade23} / ${club.grade23Capacity}`
+                        : "불가"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={club.isOpen ? "default" : "secondary"}>
@@ -323,7 +285,7 @@ export default function AdminClubs() {
                 ))}
                 {clubs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
+                    <TableCell colSpan={5} className="text-muted-foreground py-8 text-center">
                       등록된 창체동아리가 없습니다.
                     </TableCell>
                   </TableRow>

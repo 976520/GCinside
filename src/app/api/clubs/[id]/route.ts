@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   const body = await req.json();
-  const { name, description, grade1Capacity, grade23Capacity, isOpen, openAt } = body;
+  const { name, description, grade1Capacity, grade23Capacity, isOpen } = body;
 
   const club = await prisma.club.update({
     where: { id: Number(id) },
@@ -34,7 +34,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(grade1Capacity !== undefined && { grade1Capacity: Number(grade1Capacity) }),
       ...(grade23Capacity !== undefined && { grade23Capacity: Number(grade23Capacity) }),
       ...(isOpen !== undefined && { isOpen: Boolean(isOpen) }),
-      ...(openAt !== undefined && { openAt: openAt ? new Date(openAt) : null }),
     },
   });
 

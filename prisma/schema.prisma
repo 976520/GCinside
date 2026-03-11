@@ -28,16 +28,20 @@ model User {
 }
 
 model Club {
-  id             Int          @id @default(autoincrement())
-  name           String
-  description    String
+  id              Int          @id @default(autoincrement())
+  name            String
+  description     String
   grade1Capacity  Int          @default(0)
   grade23Capacity Int          @default(0)
-  isOpen         Boolean      @default(true)
-  openAt         DateTime?
-  enrollments    Enrollment[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  isOpen          Boolean      @default(true)
+  enrollments     Enrollment[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Settings {
+  id     Int       @id @default(1)
+  openAt DateTime?
 }
 
 model Enrollment {

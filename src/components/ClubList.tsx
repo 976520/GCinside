@@ -19,7 +19,6 @@ interface Club {
   grade1Capacity: number;
   grade23Capacity: number;
   isOpen: boolean;
-  openAt: string | null;
   _count: { enrollments: number };
   gradeEnrollments: { grade1: number; grade23: number };
 }
@@ -37,9 +36,11 @@ function formatKST(utcStr: string): string {
 export default function ClubList({
   isLoggedIn,
   userGrade,
+  globalOpenAt,
 }: {
   isLoggedIn: boolean;
   userGrade?: number | null;
+  globalOpenAt?: string | null;
 }) {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [enrolledIds, setEnrolledIds] = useState<Set<number>>(new Set());
@@ -175,7 +176,7 @@ export default function ClubList({
       {sortedClubs.map((club) => {
         const isEnrolled = enrolledIds.has(club.id);
         const isClosed = !club.isOpen;
-        const isNotOpenYet = !!club.openAt && now < new Date(club.openAt);
+        const isNotOpenYet = !!globalOpenAt && now < new Date(globalOpenAt);
         const isPinned = pinnedIds.includes(club.id);
 
         const gradeCount =
@@ -271,11 +272,9 @@ export default function ClubList({
                   </Button>
                 </div>
               </div>
-              {club.openAt && (
+              {globalOpenAt && isNotOpenYet && (
                 <p className="text-muted-foreground text-xs">
-                  {isNotOpenYet
-                    ? `신청 오픈: ${formatKST(club.openAt)}`
-                    : `오픈됨: ${formatKST(club.openAt)}`}
+                  신청 오픈: {formatKST(globalOpenAt)}
                 </p>
               )}
             </CardHeader>

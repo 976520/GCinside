@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, description, grade1Capacity, grade23Capacity, isOpen, openAt } = body;
+  const { name, description, grade1Capacity, grade23Capacity, isOpen } = body;
 
   if (!name || !description) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -44,7 +44,6 @@ export async function POST(req: NextRequest) {
       grade1Capacity: Number(grade1Capacity ?? 0),
       grade23Capacity: Number(grade23Capacity ?? 0),
       isOpen: isOpen ?? true,
-      openAt: openAt ? new Date(openAt) : null,
     },
   });
 
