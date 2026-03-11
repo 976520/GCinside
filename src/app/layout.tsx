@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "GCinside",
-  description: "GSM 동아리 선착순 수강신청 서비스",
+  description: "GSM 창체동아리 수강신청 서비스",
 };
 
 export default function RootLayout({
@@ -15,9 +17,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
-      <body className={`${geist.className} bg-gray-50 min-h-screen`}>
-        {children}
+    <html lang="ko" suppressHydrationWarning>
+      <body className={geist.className}>
+        <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
+          {children}
+          <Toaster richColors position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   );
