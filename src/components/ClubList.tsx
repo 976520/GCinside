@@ -13,12 +13,11 @@ interface Club {
   name: string;
   description: string;
   grade1Capacity: number;
-  grade2Capacity: number;
-  grade3Capacity: number;
+  grade23Capacity: number;
   isOpen: boolean;
   openAt: string | null;
   _count: { enrollments: number };
-  gradeEnrollments: { grade1: number; grade2: number; grade3: number };
+  gradeEnrollments: { grade1: number; grade23: number };
 }
 
 function formatKST(utcStr: string): string {
@@ -93,8 +92,7 @@ export default function ClubList({
                 gradeEnrollments: {
                   ...c.gradeEnrollments,
                   ...(userGrade === 1 && { grade1: c.gradeEnrollments.grade1 + 1 }),
-                  ...(userGrade === 2 && { grade2: c.gradeEnrollments.grade2 + 1 }),
-                  ...(userGrade === 3 && { grade3: c.gradeEnrollments.grade3 + 1 }),
+                  ...((userGrade === 2 || userGrade === 3) && { grade23: c.gradeEnrollments.grade23 + 1 }),
                 },
               }
             : c
@@ -145,14 +143,12 @@ export default function ClubList({
 
         const gradeCount =
           userGrade === 1 ? club.gradeEnrollments.grade1
-          : userGrade === 2 ? club.gradeEnrollments.grade2
-          : userGrade === 3 ? club.gradeEnrollments.grade3
+          : (userGrade === 2 || userGrade === 3) ? club.gradeEnrollments.grade23
           : null;
 
         const gradeCapacity =
           userGrade === 1 ? club.grade1Capacity
-          : userGrade === 2 ? club.grade2Capacity
-          : userGrade === 3 ? club.grade3Capacity
+          : (userGrade === 2 || userGrade === 3) ? club.grade23Capacity
           : null;
 
         const isGradeFull = gradeCapacity !== null && gradeCapacity > 0 && gradeCount !== null && gradeCount >= gradeCapacity;
@@ -171,8 +167,7 @@ export default function ClubList({
 
         const grades = [
           { label: "1학년", count: club.gradeEnrollments.grade1, capacity: club.grade1Capacity, isMyGrade: userGrade === 1 },
-          { label: "2학년", count: club.gradeEnrollments.grade2, capacity: club.grade2Capacity, isMyGrade: userGrade === 2 },
-          { label: "3학년", count: club.gradeEnrollments.grade3, capacity: club.grade3Capacity, isMyGrade: userGrade === 3 },
+          { label: "2·3학년", count: club.gradeEnrollments.grade23, capacity: club.grade23Capacity, isMyGrade: userGrade === 2 || userGrade === 3 },
         ];
 
         return (

@@ -37,8 +37,7 @@ export async function POST(req: NextRequest) {
         select: {
           id: true,
           grade1Capacity: true,
-          grade2Capacity: true,
-          grade3Capacity: true,
+          grade23Capacity: true,
           isOpen: true,
           openAt: true,
         },
@@ -58,16 +57,15 @@ export async function POST(req: NextRequest) {
       const grade = user?.grade;
       if (!grade) throw new Error("GRADE_REQUIRED");
 
-      const gradeCapacity =
-        grade === 1 ? club.grade1Capacity
-        : grade === 2 ? club.grade2Capacity
-        : grade === 3 ? club.grade3Capacity
-        : 0;
+      const gradeCapacity = grade === 1 ? club.grade1Capacity : club.grade23Capacity;
 
       if (gradeCapacity === 0) throw new Error("GRADE_NOT_ALLOWED");
 
       const gradeCount = await tx.enrollment.count({
-        where: { clubId: Number(clubId), user: { grade } },
+        where: {
+          clubId: Number(clubId),
+          user: grade === 1 ? { grade: 1 } : { grade: { in: [2, 3] } },
+        },
       });
 
       if (gradeCount >= gradeCapacity) throw new Error("GRADE_FULL");

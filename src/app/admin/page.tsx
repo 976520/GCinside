@@ -7,7 +7,7 @@ export default function AdminPage() {
   return (
     <>
       <Header />
-      <main className="max-w-5xl mx-auto px-6 py-8">
+      <main className="max-w-4xl mx-auto px-6 py-8">
         <h1 className="text-2xl font-bold mb-8">Admin page</h1>
         <div className="space-y-10">
           <section>

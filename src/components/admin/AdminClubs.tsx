@@ -32,8 +32,7 @@ interface Club {
   name: string;
   description: string;
   grade1Capacity: number;
-  grade2Capacity: number;
-  grade3Capacity: number;
+  grade23Capacity: number;
   isOpen: boolean;
   openAt: string | null;
   _count: { enrollments: number };
@@ -43,8 +42,7 @@ const emptyForm = {
   name: "",
   description: "",
   grade1Capacity: 0,
-  grade2Capacity: 0,
-  grade3Capacity: 0,
+  grade23Capacity: 0,
   isOpen: true,
   openAt: "",
 };
@@ -97,8 +95,7 @@ export default function AdminClubs() {
       name: form.name,
       description: form.description,
       grade1Capacity: form.grade1Capacity,
-      grade2Capacity: form.grade2Capacity,
-      grade3Capacity: form.grade3Capacity,
+      grade23Capacity: form.grade23Capacity,
       isOpen: form.isOpen,
       openAt: kstInputToUtc(form.openAt),
     };
@@ -134,8 +131,7 @@ export default function AdminClubs() {
       name: club.name,
       description: club.description,
       grade1Capacity: club.grade1Capacity,
-      grade2Capacity: club.grade2Capacity,
-      grade3Capacity: club.grade3Capacity,
+      grade23Capacity: club.grade23Capacity,
       isOpen: club.isOpen,
       openAt: utcToKstInput(club.openAt),
     });
@@ -202,25 +198,33 @@ export default function AdminClubs() {
             </div>
             <div>
               <Label className="mb-2 block">학년별 정원</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {([1, 2, 3] as const).map((g) => {
-                  const key = `grade${g}Capacity` as "grade1Capacity" | "grade2Capacity" | "grade3Capacity";
-                  return (
-                    <div key={g} className="space-y-1.5">
-                      <Label htmlFor={key} className="text-muted-foreground text-xs font-normal">
-                        {g}학년 정원
-                      </Label>
-                      <Input
-                        id={key}
-                        type="number"
-                        min={0}
-                        required
-                        value={form[key] || ""}
-                        onChange={(e) => setForm((f) => ({ ...f, [key]: Number(e.target.value) }))}
-                      />
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="grade1Capacity" className="text-muted-foreground text-xs font-normal">
+                    1학년 정원
+                  </Label>
+                  <Input
+                    id="grade1Capacity"
+                    type="number"
+                    min={0}
+                    required
+                    value={form.grade1Capacity || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, grade1Capacity: Number(e.target.value) }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="grade23Capacity" className="text-muted-foreground text-xs font-normal">
+                    2·3학년 정원
+                  </Label>
+                  <Input
+                    id="grade23Capacity"
+                    type="number"
+                    min={0}
+                    required
+                    value={form.grade23Capacity || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, grade23Capacity: Number(e.target.value) }))}
+                  />
+                </div>
               </div>
               <p className="text-xs text-muted-foreground mt-1.5">0으로 설정하면 해당 학년은 신청 불가</p>
             </div>
@@ -260,8 +264,7 @@ export default function AdminClubs() {
                 <TableRow>
                   <TableHead>동아리명</TableHead>
                   <TableHead>1학년</TableHead>
-                  <TableHead>2학년</TableHead>
-                  <TableHead>3학년</TableHead>
+                  <TableHead>2·3학년</TableHead>
                   <TableHead>오픈 시간</TableHead>
                   <TableHead>상태</TableHead>
                   <TableHead className="text-right">관리</TableHead>
@@ -275,10 +278,7 @@ export default function AdminClubs() {
                       {club.grade1Capacity > 0 ? `- / ${club.grade1Capacity}` : "불가"}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {club.grade2Capacity > 0 ? `- / ${club.grade2Capacity}` : "불가"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {club.grade3Capacity > 0 ? `- / ${club.grade3Capacity}` : "불가"}
+                      {club.grade23Capacity > 0 ? `- / ${club.grade23Capacity}` : "불가"}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                       {formatKST(club.openAt)}
@@ -289,11 +289,7 @@ export default function AdminClubs() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(club)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(club)}>
                         수정
                       </Button>
                       <Button
@@ -309,7 +305,7 @@ export default function AdminClubs() {
                 ))}
                 {clubs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       등록된 창체동아리가 없습니다.
                     </TableCell>
                   </TableRow>

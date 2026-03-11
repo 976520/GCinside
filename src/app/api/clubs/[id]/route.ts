@@ -30,7 +30,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { name, description, grade1Capacity, grade2Capacity, grade3Capacity, isOpen, openAt } = body;
+  const { name, description, grade1Capacity, grade23Capacity, isOpen, openAt } = body;
 
   const club = await prisma.club.update({
     where: { id: Number(id) },
@@ -38,8 +38,7 @@ export async function PATCH(
       ...(name !== undefined && { name: String(name) }),
       ...(description !== undefined && { description: String(description) }),
       ...(grade1Capacity !== undefined && { grade1Capacity: Number(grade1Capacity) }),
-      ...(grade2Capacity !== undefined && { grade2Capacity: Number(grade2Capacity) }),
-      ...(grade3Capacity !== undefined && { grade3Capacity: Number(grade3Capacity) }),
+      ...(grade23Capacity !== undefined && { grade23Capacity: Number(grade23Capacity) }),
       ...(isOpen !== undefined && { isOpen: Boolean(isOpen) }),
       ...(openAt !== undefined && { openAt: openAt ? new Date(openAt) : null }),
     },

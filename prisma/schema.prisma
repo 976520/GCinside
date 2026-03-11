@@ -31,9 +31,8 @@ model Club {
   id             Int          @id @default(autoincrement())
   name           String
   description    String
-  grade1Capacity Int          @default(0)
-  grade2Capacity Int          @default(0)
-  grade3Capacity Int          @default(0)
+  grade1Capacity  Int          @default(0)
+  grade23Capacity Int          @default(0)
   isOpen         Boolean      @default(true)
   openAt         DateTime?
   enrollments    Enrollment[]
