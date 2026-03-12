@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { NextRequest } from "next/server";
 
+vi.mock("next/cache", () => ({
+  revalidateTag: vi.fn(),
+  unstable_cache: vi.fn((fn) => fn),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     club: {
