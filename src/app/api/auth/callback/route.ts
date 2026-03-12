@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
 
   const session = await getSession();
 
-  // CSRF 검증
   if (!state || state !== session.oauthState) {
     return NextResponse.redirect(new URL("/?error=invalid_state", req.url));
   }
@@ -21,43 +20,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/?error=missing_code", req.url));
   }
 
+  let step = "token_exchange";
   try {
-    // 토큰 교환
     const tokens = await exchangeCodeForToken(code, session.codeVerifier);
 
-    // 유저 정보 조회
+    step = "fetch_user_info";
     const oauthUser = await fetchUserInfo(tokens.access_token);
 
-    // DB에 upsert
+    step = "db_upsert";
     const role = isAdminEmail(oauthUser.email) ? "ADMIN" : "STUDENT";
+
+    const studentData = {
+      name: oauthUser.student?.name ?? oauthUser.email,
+      studentNumber: oauthUser.student?.studentNumber
+        ? Number(oauthUser.student.studentNumber)
+        : null,
+      grade: oauthUser.student?.grade ? Number(oauthUser.student.grade) : null,
+      classNum: oauthUser.student?.classNum ? Number(oauthUser.student.classNum) : null,
+      number: oauthUser.student?.number ? Number(oauthUser.student.number) : null,
+      major: oauthUser.student?.major ?? null,
+    };
 
     const user = await prisma.user.upsert({
       where: { oauthId: oauthUser.id },
       update: {
         email: oauthUser.email,
-        name: oauthUser.student?.name ?? oauthUser.email,
-        studentNumber: oauthUser.student?.studentNumber ?? null,
-        grade: oauthUser.student?.grade ?? null,
-        classNum: oauthUser.student?.classNum ?? null,
-        number: oauthUser.student?.number ?? null,
-        major: oauthUser.student?.major ?? null,
+        ...studentData,
         role,
         refreshToken: tokens.refresh_token ?? null,
       },
       create: {
         oauthId: oauthUser.id,
         email: oauthUser.email,
-        name: oauthUser.student?.name ?? oauthUser.email,
-        studentNumber: oauthUser.student?.studentNumber ?? null,
-        grade: oauthUser.student?.grade ?? null,
-        classNum: oauthUser.student?.classNum ?? null,
-        number: oauthUser.student?.number ?? null,
-        major: oauthUser.student?.major ?? null,
+        ...studentData,
         role,
         refreshToken: tokens.refresh_token ?? null,
       },
     });
 
+    step = "session_save";
     session.userId = user.id;
     session.email = user.email;
     session.name = user.name;
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.redirect(new URL(role === "ADMIN" ? "/admin" : "/", req.url));
   } catch (err) {
-    console.error("OAuth callback error:", err);
+    console.error(`OAuth callback error at step [${step}]:`, err);
     return NextResponse.redirect(new URL("/?error=auth_failed", req.url));
   }
 }
