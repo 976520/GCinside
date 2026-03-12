@@ -24,7 +24,21 @@ interface Club {
   gradeEnrollments: { grade1: number; grade23: number };
 }
 
-export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
+interface Settings {
+  id: number;
+  openAt: Date | null;
+  enrollmentEnabled: boolean;
+}
+
+export default function ClubList({
+  isLoggedIn,
+  initialClubs,
+  initialSettings,
+}: {
+  isLoggedIn: boolean;
+  initialClubs: Club[];
+  initialSettings: Settings;
+}) {
   const queryClient = useQueryClient();
   const [now, setNow] = useState(() => new Date());
   const [pinnedIds, setPinnedIds] = useState<number[]>(() => {
@@ -56,6 +70,7 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
   const { data: clubs = [], isLoading: clubsLoading } = useQuery<Club[]>({
     queryKey: ["clubs"],
     queryFn: () => fetch("/api/clubs").then((r) => r.json()),
+    initialData: initialClubs,
     staleTime: 30_000,
   });
 
@@ -72,6 +87,7 @@ export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
   const { data: settings } = useQuery<{ openAt: string | null }>({
     queryKey: ["settings"],
     queryFn: () => fetch("/api/settings").then((r) => r.json()),
+    initialData: { ...initialSettings, openAt: initialSettings.openAt?.toISOString() ?? null },
     staleTime: 60_000,
     select: (data) => ({ openAt: data.openAt ?? null }),
   });

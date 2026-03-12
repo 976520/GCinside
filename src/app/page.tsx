@@ -2,14 +2,19 @@ import Header from "@/components/Header";
 import ClubList from "@/components/ClubList";
 import ErrorToast from "@/components/ErrorToast";
 import { getSession } from "@/lib/session";
+import { getCachedClubs, getCachedSettings } from "@/lib/queries";
 
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const session = await getSession();
-  const { error } = await searchParams;
+  const [session, clubs, settings, { error }] = await Promise.all([
+    getSession(),
+    getCachedClubs(),
+    getCachedSettings(),
+    searchParams,
+  ]);
 
   const initialUser = session.userId
     ? {
@@ -30,7 +35,7 @@ export default async function HomePage({
         <p className="text-muted-foreground mb-6 text-sm">
           원하는 창체동아리를 선택해 선착순으로 신청하세요.
         </p>
-        <ClubList isLoggedIn={!!session.userId} />
+        <ClubList isLoggedIn={!!session.userId} initialClubs={clubs} initialSettings={settings} />
       </main>
     </>
   );

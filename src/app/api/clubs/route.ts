@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { TAGS } from "@/lib/queries";
 
 export async function GET() {
   const clubs = await prisma.club.findMany({
@@ -47,5 +49,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  revalidateTag(TAGS.clubs, {});
   return NextResponse.json(club, { status: 201 });
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { TAGS } from "@/lib/queries";
 
 // 동아리 단건 조회
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -37,6 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     },
   });
 
+  revalidateTag(TAGS.clubs, {});
   return NextResponse.json(club);
 }
 
@@ -49,5 +52,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   await prisma.club.delete({ where: { id: Number(id) } });
 
+  revalidateTag(TAGS.clubs, {});
   return NextResponse.json({ ok: true });
 }

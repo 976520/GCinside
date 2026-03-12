@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { TAGS } from "@/lib/queries";
 
 export async function GET() {
   const settings = await prisma.settings.upsert({
@@ -30,5 +32,6 @@ export async function PATCH(req: NextRequest) {
     },
   });
 
+  revalidateTag(TAGS.settings, {});
   return NextResponse.json(settings);
 }
