@@ -4,8 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { TAGS } from "@/lib/queries";
 
-type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-
 export async function GET() {
   const session = await getSession();
   if (!session.userId) {
@@ -33,49 +31,41 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const enrollment = await prisma.$transaction(async (tx: TransactionClient) => {
-      const [club, settings] = await Promise.all([
-        tx.club.findUnique({
-          where: { id: Number(clubId) },
-          select: { id: true, grade1Capacity: true, grade23Capacity: true, isOpen: true },
-        }),
-        tx.settings.findUnique({ where: { id: 1 } }),
-      ]);
-
-      if (!club) throw new Error("CLUB_NOT_FOUND");
-
-      const now = new Date();
-      if (!club.isOpen && settings?.openAt && now < settings.openAt)
-        throw new Error("NOT_OPEN_YET");
-
-      const user = await tx.user.findUnique({
-        where: { id: session.userId! },
+    const [club, settings, user] = await Promise.all([
+      prisma.club.findUnique({
+        where: { id: Number(clubId) },
+        select: { id: true, grade1Capacity: true, grade23Capacity: true, isOpen: true },
+      }),
+      prisma.settings.findUnique({ where: { id: 1 } }),
+      prisma.user.findUnique({
+        where: { id: session.userId },
         select: { grade: true },
-      });
+      }),
+    ]);
 
-      const grade = user?.grade;
-      if (!grade) throw new Error("GRADE_REQUIRED");
+    if (!club) throw new Error("CLUB_NOT_FOUND");
 
-      const gradeCapacity = grade === 1 ? club.grade1Capacity : club.grade23Capacity;
+    const now = new Date();
+    if (!club.isOpen && settings?.openAt && now < settings.openAt) throw new Error("NOT_OPEN_YET");
 
-      if (gradeCapacity === 0) throw new Error("GRADE_NOT_ALLOWED");
+    const grade = user?.grade;
+    if (!grade) throw new Error("GRADE_REQUIRED");
 
-      const gradeCount = await tx.enrollment.count({
-        where: {
-          clubId: Number(clubId),
-          user: grade === 1 ? { grade: 1 } : { grade: { in: [2, 3] } },
-        },
-      });
+    const gradeCapacity = grade === 1 ? club.grade1Capacity : club.grade23Capacity;
+    if (gradeCapacity === 0) throw new Error("GRADE_NOT_ALLOWED");
 
-      if (gradeCount >= gradeCapacity) throw new Error("GRADE_FULL");
+    const gradeCount = await prisma.enrollment.count({
+      where: {
+        clubId: Number(clubId),
+        user: grade === 1 ? { grade: 1 } : { grade: { in: [2, 3] } },
+      },
+    });
 
-      return tx.enrollment.create({
-        data: {
-          userId: session.userId!,
-          clubId: Number(clubId),
-        },
-        include: { club: true },
-      });
+    if (gradeCount >= gradeCapacity) throw new Error("GRADE_FULL");
+
+    const enrollment = await prisma.enrollment.create({
+      data: { userId: session.userId, clubId: Number(clubId) },
+      include: { club: true },
     });
 
     revalidateTag(TAGS.enrollments, {});
@@ -99,10 +89,8 @@ export async function POST(req: NextRequest) {
       );
     if (message === "GRADE_FULL")
       return NextResponse.json({ error: "해당 학년 정원이 마감되었습니다." }, { status: 409 });
-
-    if (message.includes("Unique constraint")) {
+    if (message.includes("Unique constraint"))
       return NextResponse.json({ error: "이미 신청한 동아리입니다." }, { status: 409 });
-    }
 
     console.error(err);
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
