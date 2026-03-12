@@ -27,11 +27,9 @@ interface Club {
 export default function ClubList({
   isLoggedIn,
   userGrade,
-  globalOpenAt,
 }: {
   isLoggedIn: boolean;
   userGrade?: number | null;
-  globalOpenAt?: string | null;
 }) {
   const queryClient = useQueryClient();
   const [now, setNow] = useState(() => new Date());
@@ -63,8 +61,17 @@ export default function ClubList({
         .then((r) => r.json())
         .then((data: { clubId: number }[]) => new Set(data.map((e) => e.clubId))),
     enabled: isLoggedIn,
-    staleTime: 0,
+    staleTime: 30_000,
   });
+
+  const { data: settings } = useQuery<{ openAt: string | null }>({
+    queryKey: ["settings"],
+    queryFn: () => fetch("/api/settings").then((r) => r.json()),
+    staleTime: 60_000,
+    select: (data) => ({ openAt: data.openAt ?? null }),
+  });
+
+  const globalOpenAt = settings?.openAt ?? null;
 
   const enrollMutation = useMutation({
     mutationFn: (clubId: number) =>

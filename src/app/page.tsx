@@ -13,17 +13,13 @@ export default async function HomePage({
   const { error } = await searchParams;
 
   let userGrade: number | null = null;
-  const [userResult, settings] = await Promise.all([
-    session.userId
-      ? prisma.user.findUnique({ where: { id: session.userId }, select: { grade: true } })
-      : Promise.resolve(null),
-    prisma.settings.upsert({ where: { id: 1 }, create: { id: 1 }, update: {} }),
-  ]);
   if (session.userId) {
+    const userResult = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { grade: true },
+    });
     userGrade = userResult?.grade ?? null;
   }
-
-  const globalOpenAt = settings.openAt ? settings.openAt.toISOString() : null;
 
   return (
     <>
@@ -34,7 +30,7 @@ export default async function HomePage({
         <p className="text-muted-foreground mb-6 text-sm">
           원하는 창체동아리를 선택해 선착순으로 신청하세요.
         </p>
-        <ClubList isLoggedIn={!!session.userId} userGrade={userGrade} globalOpenAt={globalOpenAt} />
+        <ClubList isLoggedIn={!!session.userId} userGrade={userGrade} />
       </main>
     </>
   );

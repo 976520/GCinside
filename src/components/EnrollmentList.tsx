@@ -79,9 +79,8 @@ export default function EnrollmentList({
             <div className="flex items-center gap-2">
               <Badge variant="secondary">신청완료</Badge>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="text-destructive hover:text-destructive text-xs"
                 onClick={() => setConfirmId(enrollment.id)}
                 disabled={pendingId === enrollment.id}
               >

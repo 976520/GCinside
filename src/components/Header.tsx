@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sun, Moon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -27,19 +27,22 @@ interface User {
 }
 
 export default function Header() {
-  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { resolvedTheme, setTheme } = useTheme();
 
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((data) => setUser(data.user));
-  }, []);
+  const { data: user } = useQuery<User | null>({
+    queryKey: ["me"],
+    queryFn: () =>
+      fetch("/api/auth/me")
+        .then((r) => r.json())
+        .then((data) => data.user ?? null),
+    staleTime: 5 * 60_000,
+  });
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
+    queryClient.setQueryData(["me"], null);
     toast.success("로그아웃되었습니다.");
     router.push("/");
     router.refresh();
