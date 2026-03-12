@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import Header from "@/components/Header";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
-import type { Enrollment, Club } from "@prisma/client";
+import EnrollmentList from "@/components/EnrollmentList";
 
 const MAJOR_LABELS: Record<string, string> = {
   SW_DEVELOPMENT: "소프트웨어개발",
@@ -94,31 +93,12 @@ export default async function ProfilePage() {
 
         <section>
           <h2 className="mb-3 text-lg font-semibold">신청한 동아리</h2>
-          {user.enrollments.length === 0 ? (
-            <div className="bg-card text-muted-foreground rounded-xl border p-8 text-center text-sm">
-              아직 신청한 동아리가 없어요.{" "}
-              <Link href="/" className="text-primary underline underline-offset-4">
-                동아리를 둘러보세요.
-              </Link>
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {user.enrollments.map((enrollment: Enrollment & { club: Club }) => (
-                <li
-                  key={enrollment.id}
-                  className="bg-card flex items-center justify-between rounded-xl border p-4"
-                >
-                  <div>
-                    <p className="font-medium">{enrollment.club.name}</p>
-                    <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">
-                      {enrollment.club.description}
-                    </p>
-                  </div>
-                  <Badge variant="secondary">신청완료</Badge>
-                </li>
-              ))}
-            </ul>
-          )}
+          <EnrollmentList
+            initialEnrollments={user.enrollments.map((e) => ({
+              id: e.id,
+              club: { name: e.club.name, description: e.club.description },
+            }))}
+          />
         </section>
       </main>
     </>
