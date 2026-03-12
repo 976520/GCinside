@@ -79,7 +79,7 @@ export default function EnrollmentList({
             <div className="flex items-center gap-2">
               <Badge variant="secondary">신청완료</Badge>
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
                 onClick={() => setConfirmId(enrollment.id)}
                 disabled={pendingId === enrollment.id}
@@ -108,7 +108,7 @@ export default function EnrollmentList({
           <AlertDialogFooter>
             <AlertDialogCancel>돌아가기</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive/10 text-destructive hover:bg-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30"
               onClick={() => confirmId !== null && handleCancel(confirmId)}
             >
               취소하기
