@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { refreshAccessToken, fetchUserInfo, isAdminEmail } from "@/lib/oauth";
+import { TAGS } from "@/lib/queries";
 
 export async function POST() {
   const session = await getSession();
@@ -50,6 +52,8 @@ export async function POST() {
   const failed = results
     .filter((r): r is PromiseRejectedResult => r.status === "rejected")
     .map((r, i) => ({ name: users[i].name, reason: String(r.reason) }));
+
+  revalidateTag(TAGS.users, {});
 
   return NextResponse.json({
     succeeded: succeeded.length,

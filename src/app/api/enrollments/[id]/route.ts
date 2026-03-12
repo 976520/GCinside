@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { TAGS } from "@/lib/queries";
 
 // 신청 시간 수정 (어드민 전용)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -47,5 +49,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   await prisma.enrollment.delete({ where: { id: Number(id) } });
+  revalidateTag(TAGS.enrollments, {});
   return NextResponse.json({ ok: true });
 }

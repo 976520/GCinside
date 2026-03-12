@@ -1,12 +1,8 @@
-import { prisma } from "@/lib/prisma";
+import { getCachedEnrollments } from "@/lib/queries";
 import EnrollmentList from "@/components/EnrollmentList";
 
 export default async function ProfileEnrollments({ userId }: { userId: number }) {
-  const enrollments = await prisma.enrollment.findMany({
-    where: { userId },
-    include: { club: { select: { name: true, description: true } } },
-    orderBy: { enrolledAt: "asc" },
-  });
+  const enrollments = await getCachedEnrollments(userId);
 
   return (
     <EnrollmentList

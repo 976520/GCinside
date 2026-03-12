@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { TAGS } from "@/lib/queries";
 
 type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -76,6 +78,7 @@ export async function POST(req: NextRequest) {
       });
     });
 
+    revalidateTag(TAGS.enrollments, {});
     return NextResponse.json(enrollment, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "UNKNOWN";

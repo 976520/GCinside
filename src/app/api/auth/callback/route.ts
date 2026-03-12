@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { getSession } from "@/lib/session";
 import { exchangeCodeForToken, fetchUserInfo, isAdminEmail } from "@/lib/oauth";
 import { prisma } from "@/lib/prisma";
+import { TAGS } from "@/lib/queries";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -64,6 +66,7 @@ export async function GET(req: NextRequest) {
     session.codeVerifier = undefined;
     session.oauthState = undefined;
     await session.save();
+    revalidateTag(TAGS.users, {});
 
     return NextResponse.redirect(new URL(role === "ADMIN" ? "/admin" : "/", req.url));
   } catch (err) {

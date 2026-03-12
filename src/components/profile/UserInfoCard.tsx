@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getCachedUserProfile } from "@/lib/queries";
 import { Badge } from "@/components/ui/badge";
 
 const MAJOR_LABELS: Record<string, string> = {
@@ -8,19 +8,7 @@ const MAJOR_LABELS: Record<string, string> = {
 };
 
 export default async function UserInfoCard({ userId }: { userId: number }) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      name: true,
-      email: true,
-      role: true,
-      studentNumber: true,
-      grade: true,
-      classNum: true,
-      number: true,
-      major: true,
-    },
-  });
+  const user = await getCachedUserProfile(userId);
 
   if (!user) return null;
 
