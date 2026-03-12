@@ -79,6 +79,7 @@ function RefreshUsersButton() {
         return data as {
           succeeded: number;
           failed: number;
+          expired: number;
           failedUsers: { name: string; reason: string }[];
           totalStudents: number;
           withToken: number;
@@ -97,9 +98,15 @@ function RefreshUsersButton() {
           description: `${data.succeeded}명 갱신됨`,
         });
       } else {
-        toast.warning(`갱신 완료 (일부 실패)`, {
-          description: `성공 ${data.succeeded}명 · 실패 ${data.failed}명`,
-        });
+        const otherFailed = data.failed - data.expired;
+        const parts = [
+          `성공 ${data.succeeded}명`,
+          data.expired > 0 && `토큰 만료 ${data.expired}명 (재로그인 필요)`,
+          otherFailed > 0 && `기타 오류 ${otherFailed}명`,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        toast.warning(`갱신 완료 (일부 실패)`, { description: parts });
       }
     },
     onError: (err: Error) => toast.error("갱신 실패", { description: err.message }),
@@ -127,9 +134,22 @@ function RefreshUsersButton() {
           저장됩니다.
         </p>
       )}
-      {mutation.isSuccess && mutation.data.failedUsers.length > 0 && (
+      {mutation.isSuccess && mutation.data.expired > 0 && (
+        <p className="text-muted-foreground text-xs">
+          토큰 만료:{" "}
+          {mutation.data.failedUsers
+            .filter((u) => u.reason.includes("invalid_grant"))
+            .map((u) => u.name)
+            .join(", ")}
+        </p>
+      )}
+      {mutation.isSuccess && mutation.data.failed - mutation.data.expired > 0 && (
         <p className="text-destructive text-xs">
-          실패: {mutation.data.failedUsers.map((u) => u.name).join(", ")}
+          기타 오류:{" "}
+          {mutation.data.failedUsers
+            .filter((u) => !u.reason.includes("invalid_grant"))
+            .map((u) => u.name)
+            .join(", ")}
         </p>
       )}
     </div>

@@ -41,22 +41,30 @@ export async function GET(req: NextRequest) {
       major: oauthUser.student?.major ?? null,
     };
 
-    const user = await prisma.user.upsert({
-      where: { oauthId: oauthUser.id },
-      update: {
-        email: oauthUser.email,
-        ...studentData,
-        role,
-        refreshToken: tokens.refresh_token ?? null,
-      },
-      create: {
-        oauthId: oauthUser.id,
-        email: oauthUser.email,
-        ...studentData,
-        role,
-        refreshToken: tokens.refresh_token ?? null,
-      },
+    const existing = await prisma.user.findFirst({
+      where: { OR: [{ oauthId: oauthUser.id }, { email: oauthUser.email }] },
     });
+
+    const user = existing
+      ? await prisma.user.update({
+          where: { id: existing.id },
+          data: {
+            oauthId: oauthUser.id,
+            email: oauthUser.email,
+            ...studentData,
+            role,
+            refreshToken: tokens.refresh_token ?? existing.refreshToken,
+          },
+        })
+      : await prisma.user.create({
+          data: {
+            oauthId: oauthUser.id,
+            email: oauthUser.email,
+            ...studentData,
+            role,
+            refreshToken: tokens.refresh_token ?? null,
+          },
+        });
 
     step = "session_save";
     session.userId = user.id;
