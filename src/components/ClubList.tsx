@@ -24,13 +24,7 @@ interface Club {
   gradeEnrollments: { grade1: number; grade23: number };
 }
 
-export default function ClubList({
-  isLoggedIn,
-  userGrade,
-}: {
-  isLoggedIn: boolean;
-  userGrade?: number | null;
-}) {
+export default function ClubList({ isLoggedIn }: { isLoggedIn: boolean }) {
   const queryClient = useQueryClient();
   const [now, setNow] = useState(() => new Date());
   const [pinnedIds, setPinnedIds] = useState<number[]>(() => {
@@ -47,6 +41,17 @@ export default function ClubList({
     const timer = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  const { data: me } = useQuery<{ grade: number | null } | null>({
+    queryKey: ["me"],
+    queryFn: () =>
+      fetch("/api/auth/me")
+        .then((r) => r.json())
+        .then((data) => data.user ?? null),
+    staleTime: 5 * 60_000,
+    enabled: isLoggedIn,
+  });
+  const userGrade = me?.grade ?? null;
 
   const { data: clubs = [], isLoading: clubsLoading } = useQuery<Club[]>({
     queryKey: ["clubs"],

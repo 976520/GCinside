@@ -7,7 +7,7 @@ export interface SessionData {
   email?: string;
   name?: string;
   role?: "STUDENT" | "ADMIN";
-  // PKCE용 임시 저장
+  grade?: number | null;
   codeVerifier?: string;
   oauthState?: string;
 }

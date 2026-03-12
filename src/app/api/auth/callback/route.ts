@@ -56,11 +56,11 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // 세션 저장 (PKCE 임시값 제거)
     session.userId = user.id;
     session.email = user.email;
     session.name = user.name;
     session.role = user.role;
+    session.grade = user.grade ?? null;
     session.codeVerifier = undefined;
     session.oauthState = undefined;
     await session.save();
