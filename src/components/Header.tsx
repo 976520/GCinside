@@ -19,25 +19,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-interface User {
+export interface SessionUser {
   id: number;
   name: string;
   email: string;
   role: "STUDENT" | "ADMIN";
+  grade?: number | null;
 }
 
-export default function Header() {
+export default function Header({ initialUser }: { initialUser?: SessionUser | null }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { resolvedTheme, setTheme } = useTheme();
 
-  const { data: user } = useQuery<User | null>({
+  const { data: user } = useQuery<SessionUser | null>({
     queryKey: ["me"],
     queryFn: () =>
       fetch("/api/auth/me")
         .then((r) => r.json())
         .then((data) => data.user ?? null),
     staleTime: 5 * 60_000,
+    initialData: initialUser !== undefined ? initialUser : undefined,
   });
 
   const handleLogout = async () => {

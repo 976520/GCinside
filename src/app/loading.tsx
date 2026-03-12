@@ -7,8 +7,10 @@ export default function HomeLoading() {
     <>
       <Header />
       <main className="mx-auto max-w-4xl px-6 py-8">
-        <Skeleton className="mb-1 h-8 w-48" />
-        <Skeleton className="mb-6 h-4 w-72" />
+        <h1 className="mb-1 text-2xl font-bold">창체동아리 목록</h1>
+        <p className="text-muted-foreground mb-6 text-sm">
+          원하는 창체동아리를 선택해 선착순으로 신청하세요.
+        </p>
         <div className="grid gap-4">
           {[1, 2, 3].map((i) => (
             <Card key={i}>

@@ -11,9 +11,19 @@ export default async function HomePage({
   const session = await getSession();
   const { error } = await searchParams;
 
+  const initialUser = session.userId
+    ? {
+        id: session.userId,
+        name: session.name!,
+        email: session.email!,
+        role: session.role!,
+        grade: session.grade ?? null,
+      }
+    : null;
+
   return (
     <>
-      <Header />
+      <Header initialUser={initialUser} />
       <ErrorToast error={error} />
       <main className="mx-auto max-w-4xl px-6 py-8">
         <h1 className="mb-1 text-2xl font-bold">창체동아리 목록</h1>
