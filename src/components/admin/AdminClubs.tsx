@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,15 @@ interface Club {
   _count: { enrollments: number };
 }
 
+interface AdminUser {
+  id: number;
+  name: string;
+  studentNumber: number | null;
+  grade: number | null;
+  classNum: number | null;
+  number: number | null;
+}
+
 const emptyForm = {
   name: "",
   description: "",
@@ -47,11 +56,117 @@ const emptyForm = {
   isOpen: true,
 };
 
+function AddUserDialog({ club, onClose }: { club: Club; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+
+  const { data: allUsers = [] } = useQuery<AdminUser[]>({
+    queryKey: ["admin-users"],
+    queryFn: () => fetch("/api/admin/users").then((r) => r.json()),
+    staleTime: 60_000,
+  });
+
+  const { data: enrollments = [] } = useQuery<{ user: { id: number } }[]>({
+    queryKey: ["admin-enrollments", club.id],
+    queryFn: () => fetch(`/api/admin/enrollments?clubId=${club.id}`).then((r) => r.json()),
+    staleTime: 0,
+  });
+
+  const enrolledIds = useMemo(() => new Set(enrollments.map((e) => e.user.id)), [enrollments]);
+
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return allUsers.filter(
+      (u) =>
+        !enrolledIds.has(u.id) &&
+        (u.name.toLowerCase().includes(q) || String(u.studentNumber ?? "").includes(q))
+    );
+  }, [allUsers, enrolledIds, search]);
+
+  const mutation = useMutation({
+    mutationFn: (userId: number) =>
+      fetch("/api/admin/enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, clubId: club.id }),
+      }).then(async (res) => {
+        if (!res.ok) throw new Error((await res.json()).error);
+      }),
+    onSuccess: () => {
+      toast.success("추가되었습니다.");
+      queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["clubs"] });
+      onClose();
+    },
+    onError: (err: Error) => toast.error("추가 실패", { description: err.message }),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>학생 추가</DialogTitle>
+          <DialogDescription>
+            <strong>&quot;{club.name}&quot;</strong>에 추가할 학생을 선택하세요.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input
+            placeholder="이름 또는 학번으로 검색..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+          />
+          <div className="max-h-64 overflow-y-auto rounded-md border">
+            {filteredUsers.length === 0 ? (
+              <p className="text-muted-foreground py-6 text-center text-sm">
+                {allUsers.length === 0 ? "불러오는 중..." : "해당하는 학생이 없습니다."}
+              </p>
+            ) : (
+              filteredUsers.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  className={`hover:bg-accent flex w-full items-center justify-between px-3 py-2 text-sm transition-colors ${
+                    selectedUserId === user.id ? "bg-accent" : ""
+                  }`}
+                  onClick={() => setSelectedUserId(user.id)}
+                >
+                  <span className="font-medium">{user.name}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {user.studentNumber ?? "학번없음"}
+                    {user.grade && user.classNum && user.number
+                      ? ` · ${user.grade}학년 ${user.classNum}반 ${user.number}번`
+                      : ""}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            취소
+          </Button>
+          <Button
+            disabled={!selectedUserId || mutation.isPending}
+            onClick={() => selectedUserId && mutation.mutate(selectedUserId)}
+          >
+            {mutation.isPending ? "추가 중..." : "추가"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminClubs() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Club | null>(null);
+  const [addTarget, setAddTarget] = useState<Club | null>(null);
 
   const { data: clubs = [], isLoading } = useQuery<Club[]>({
     queryKey: ["clubs"],
@@ -259,6 +374,9 @@ export default function AdminClubs() {
                       </Badge>
                     </TableCell>
                     <TableCell className="space-x-2 text-right">
+                      <Button variant="ghost" size="sm" onClick={() => setAddTarget(club)}>
+                        추가
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(club)}>
                         수정
                       </Button>
@@ -285,6 +403,8 @@ export default function AdminClubs() {
           )}
         </CardContent>
       </Card>
+
+      {addTarget && <AddUserDialog club={addTarget} onClose={() => setAddTarget(null)} />}
 
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent>
