@@ -10,7 +10,9 @@ export async function GET() {
     create: { id: 1 },
     update: {},
   });
-  return NextResponse.json(settings);
+  return NextResponse.json(settings, {
+    headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=60" },
+  });
 }
 
 export async function PATCH(req: NextRequest) {
