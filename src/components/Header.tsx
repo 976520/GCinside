@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -53,8 +54,15 @@ export default function Header({ initialUser }: { initialUser?: SessionUser | nu
   return (
     <header className="bg-background border-b">
       <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-6">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          GCinside
+        <Link href="/" className="h-8 overflow-hidden">
+          <Image
+            src="/logo.png"
+            alt="GCinside"
+            width={120}
+            height={68}
+            className="-mt-[19px] dark:invert"
+            priority
+          />
         </Link>
         <nav className="flex items-center gap-2">
           <button
