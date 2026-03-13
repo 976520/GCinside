@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { TAGS } from "@/lib/queries";
+import { TAGS, getCachedSettings } from "@/lib/queries";
 
 export async function GET() {
   const session = await getSession();
@@ -31,16 +31,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const [club, settings, user] = await Promise.all([
+    const grade = session.grade;
+    if (!grade) throw new Error("GRADE_REQUIRED");
+
+    const [club, settings] = await Promise.all([
       prisma.club.findUnique({
         where: { id: Number(clubId) },
         select: { id: true, grade1Capacity: true, grade23Capacity: true, isOpen: true },
       }),
-      prisma.settings.findUnique({ where: { id: 1 } }),
-      prisma.user.findUnique({
-        where: { id: session.userId },
-        select: { grade: true },
-      }),
+      getCachedSettings(),
     ]);
 
     if (!club) throw new Error("CLUB_NOT_FOUND");
@@ -48,25 +47,27 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     if (!club.isOpen && settings?.openAt && now < settings.openAt) throw new Error("NOT_OPEN_YET");
 
-    const grade = user?.grade;
-    if (!grade) throw new Error("GRADE_REQUIRED");
-
     const gradeCapacity = grade === 1 ? club.grade1Capacity : club.grade23Capacity;
     if (gradeCapacity === 0) throw new Error("GRADE_NOT_ALLOWED");
 
-    const gradeCount = await prisma.enrollment.count({
-      where: {
-        clubId: Number(clubId),
-        user: grade === 1 ? { grade: 1 } : { grade: { in: [2, 3] } },
+    const enrollment = await prisma.$transaction(
+      async (tx) => {
+        const gradeCount = await tx.enrollment.count({
+          where: {
+            clubId: Number(clubId),
+            user: grade === 1 ? { grade: 1 } : { grade: { in: [2, 3] } },
+          },
+        });
+
+        if (gradeCount >= gradeCapacity) throw new Error("GRADE_FULL");
+
+        return tx.enrollment.create({
+          data: { userId: session.userId!, clubId: Number(clubId) },
+          include: { club: true },
+        });
       },
-    });
-
-    if (gradeCount >= gradeCapacity) throw new Error("GRADE_FULL");
-
-    const enrollment = await prisma.enrollment.create({
-      data: { userId: session.userId, clubId: Number(clubId) },
-      include: { club: true },
-    });
+      { isolationLevel: "Serializable" }
+    );
 
     revalidateTag(TAGS.enrollments, {});
     return NextResponse.json(enrollment, { status: 201 });
