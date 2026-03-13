@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { TAGS, getCachedSettings } from "@/lib/queries";
 
+const enrollRateLimit = new Map<number, number>();
+const RATE_LIMIT_MS = 5_000;
+
 export async function GET() {
   const session = await getSession();
   if (!session.userId) {
@@ -29,6 +32,13 @@ export async function POST(req: NextRequest) {
   if (!clubId) {
     return NextResponse.json({ error: "clubId is required" }, { status: 400 });
   }
+
+  const now = Date.now();
+  const lastAttempt = enrollRateLimit.get(session.userId);
+  if (lastAttempt && now - lastAttempt < RATE_LIMIT_MS) {
+    return NextResponse.json({ error: "잠시 후 다시 시도해주세요." }, { status: 429 });
+  }
+  enrollRateLimit.set(session.userId, now);
 
   try {
     const grade = session.grade;
