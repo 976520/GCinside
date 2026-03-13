@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import * as XLSX from "xlsx";
 
 interface Enrollment {
   id: number;
@@ -51,10 +52,37 @@ interface Club {
   name: string;
 }
 
+function exportToExcel(enrollments: Enrollment[]) {
+  const sorted = [...enrollments].sort((a, b) => {
+    if ((a.user.studentNumber ?? 0) !== (b.user.studentNumber ?? 0)) {
+      return (a.user.studentNumber ?? 0) - (b.user.studentNumber ?? 0);
+    }
+    return a.user.name.localeCompare(b.user.name, "ko");
+  });
+
+  const rows = sorted.map((e) => ({
+    학번: e.user.studentNumber ?? "",
+    이름: e.user.name,
+    동아리: e.club.name,
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "신청현황");
+
+  ws["!cols"] = [{ wch: 10 }, { wch: 10 }, { wch: 16 }];
+
+  XLSX.writeFile(
+    wb,
+    `동아리신청현황_${new Date().toLocaleDateString("ko-KR").replace(/\. /g, "-").replace(".", "")}.xlsx`
+  );
+}
+
 export default function AdminEnrollments() {
   const queryClient = useQueryClient();
   const [selectedClub, setSelectedClub] = useState<string>("");
   const [deleteTarget, setDeleteTarget] = useState<Enrollment | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: clubs = [] } = useQuery<Club[]>({
     queryKey: ["clubs"],
@@ -72,6 +100,18 @@ export default function AdminEnrollments() {
     },
     staleTime: 10_000,
   });
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const data: Enrollment[] = await fetch("/api/admin/enrollments").then((r) => r.json());
+      exportToExcel(data);
+    } catch {
+      toast.error("엑셀 내보내기에 실패했습니다.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (enrollment: Enrollment) =>
@@ -108,6 +148,11 @@ export default function AdminEnrollments() {
           </SelectContent>
         </Select>
         <span className="text-muted-foreground text-sm">{enrollments.length}명</span>
+        <div className="ml-auto">
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+            {isExporting ? "내보내는 중..." : "엑셀 내보내기"}
+          </Button>
+        </div>
       </div>
 
       <Card>

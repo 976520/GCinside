@@ -87,7 +87,14 @@ export default function ClubList({
   const { data: settings } = useQuery<{ openAt: string | null }>({
     queryKey: ["settings"],
     queryFn: () => fetch("/api/settings").then((r) => r.json()),
-    initialData: { ...initialSettings, openAt: initialSettings.openAt?.toISOString() ?? null },
+    initialData: {
+      ...initialSettings,
+      openAt: initialSettings.openAt
+        ? typeof initialSettings.openAt === "string"
+          ? initialSettings.openAt
+          : (initialSettings.openAt as Date).toISOString()
+        : null,
+    },
     staleTime: 60_000,
     select: (data) => ({ openAt: data.openAt ?? null }),
   });
